@@ -3,6 +3,9 @@ package com.snelson.cadenceAPI.model;
 import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 
@@ -13,6 +16,15 @@ public class Playlist {
 
         @Id
         private String id;
+
+        @CreatedDate
+        private String createdDate;
+
+        @LastModifiedDate
+        private String lastModifiedDate;
+
+        @Version
+        private Long version;
 
         private String name;
         private String description;
@@ -31,4 +43,15 @@ public class Playlist {
         public int getSongCount() {
             return songs.size();
         }
+
+    @Override
+    public String toString() {
+        return "Playlist{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", songs=" + songs +
+                ", link='" + link + '\'' +
+                '}';
+    }
 }

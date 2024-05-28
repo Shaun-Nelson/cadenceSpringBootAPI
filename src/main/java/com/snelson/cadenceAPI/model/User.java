@@ -4,6 +4,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
@@ -16,6 +19,15 @@ public class User {
 
     @Id
     private String id;
+
+    @CreatedDate
+    private String createdDate;
+
+    @LastModifiedDate
+    private String lastModifiedDate;
+
+    @Version
+    private Long version;
 
     private String username;
     private String password;
@@ -39,5 +51,16 @@ public class User {
 
     public boolean isCorrectPassword(String password) {
         return BCrypt.checkpw(password, this.password);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id='" + id + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", email='" + email + '\'' +
+                ", playlists=" + playlists +
+                '}';
     }
 }

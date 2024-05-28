@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -14,6 +15,7 @@ import javax.sql.DataSource;
 
 @SpringBootApplication
 @EnableMongoRepositories
+@EnableMongoAuditing
 @Log
 public class CadenceApiApplication implements CommandLineRunner {
 
@@ -32,6 +34,8 @@ public class CadenceApiApplication implements CommandLineRunner {
 
 	@Override
 	public void run(final String... args) {
+		userRepository.deleteAll();
+		createUsers();
 		log.info("User repository: " + userRepository);
 	}
 }
