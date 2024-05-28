@@ -1,16 +1,17 @@
 package com.snelson.cadenceAPI.model;
 
 import jakarta.persistence.Id;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Song {
 
     @Id
@@ -31,15 +32,6 @@ public class Song {
     private String previewUrl;
     private String imageUrl;
 
-    public Song(String id, String title, String artist, String duration, String previewUrl, String imageUrl) {
-        super();
-        this.id = id;
-        this.title = title;
-        this.artist = artist;
-        this.duration = duration;
-        this.previewUrl = previewUrl;
-        this.imageUrl = imageUrl;
-    }
 
     @Override
     public String toString() {

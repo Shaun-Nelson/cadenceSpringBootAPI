@@ -2,8 +2,7 @@ package com.snelson.cadenceAPI.model;
 
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
@@ -13,8 +12,10 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import java.util.List;
 
 @Document
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class User {
 
     @Id
@@ -34,9 +35,8 @@ public class User {
     private String email;
     private List<Playlist> playlists;
 
-    public User(String id, String username, String password, String email, List<Playlist> playlists) {
+    public User(String username, String password, String email, List<Playlist> playlists) {
         super();
-        this.id = id;
         this.username = username;
         this.password = password;
         this.email = email;

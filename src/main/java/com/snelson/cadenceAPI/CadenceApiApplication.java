@@ -1,6 +1,8 @@
 package com.snelson.cadenceAPI;
 
 import com.snelson.cadenceAPI.model.User;
+import com.snelson.cadenceAPI.repository.PlaylistRepository;
+import com.snelson.cadenceAPI.repository.SongRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +19,7 @@ import javax.sql.DataSource;
 @EnableMongoRepositories
 @EnableMongoAuditing
 @Log
-public class CadenceApiApplication implements CommandLineRunner {
+public class CadenceApiApplication implements CommandLineRunner{
 
 	@Autowired
 	UserRepository userRepository;
@@ -28,7 +30,7 @@ public class CadenceApiApplication implements CommandLineRunner {
 
 	void createUsers() {
 		System.out.println("Creating users...");
-		userRepository.save(new User("1", "user1", "password1", "user@test.com", null));
+		userRepository.save(new User ("user1", "password123", "user1@test.com", null));
 		System.out.println("...Users created.");
 	}
 
