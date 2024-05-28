@@ -1,7 +1,6 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.snelson.cadenceAPI.model.Playlist;
-import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.PlaylistService;

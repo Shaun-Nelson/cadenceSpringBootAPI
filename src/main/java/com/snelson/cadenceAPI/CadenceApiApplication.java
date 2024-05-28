@@ -23,26 +23,12 @@ import javax.sql.DataSource;
 @Log
 public class CadenceApiApplication implements CommandLineRunner{
 
-	@Autowired
-	UserRepository userRepository;
-
 	public static void main(String[] args) {
 		SpringApplication.run(CadenceApiApplication.class, args);
 	}
 
-	void createUsers() {
-		System.out.println("Creating users...");
-		userRepository.save(User.builder()
-				.username("user1")
-				.password("password1")
-				.email("user1@test.com")
-				.build());
-		System.out.println("...Users created.");
-	}
-
 	@Override
-	public void run(final String... args) {
-//		userRepository.deleteAll();
-//		createUsers();
+	public void run(String... args) throws Exception {
+		log.info("Application started");
 	}
 }
