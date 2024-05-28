@@ -1,6 +1,8 @@
 package com.snelson.cadenceAPI.model;
 
 import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -26,22 +28,16 @@ public class Song {
     @Version
     private Long version;
 
+    @NotNull(message = "Title is required")
     private String title;
+
+    @NotNull(message = "Artist is required")
     private String artist;
+
+    @NotNull(message = "Duration is required")
     private String duration;
+
     private String previewUrl;
     private String imageUrl;
-
-
-    @Override
-    public String toString() {
-        return "Song{" +
-                "id='" + id + '\'' +
-                ", title='" + title + '\'' +
-                ", artist='" + artist + '\'' +
-                ", duration='" + duration + '\'' +
-                ", previewUrl='" + previewUrl + '\'' +
-                ", imageUrl='" + imageUrl + '\'' +
-                '}';
-    }
+    private String album;
 }
