@@ -108,19 +108,28 @@ public class SpotifyApiController {
         }
     }
 
-    public static List<Song> getSpotifySongs(List<Song> songs) {
-        if (spotifyApi.getAccessToken() == null) {
-            clientCredentials_Sync();
+    public static Track searchTrack(String query) {
+        checkSpotifyCredentials();
+
+        SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
+                .includeExternal("audio")
+                .build();
+
+        try {
+            SearchResult searchResult = searchItemRequest.execute();
+            return searchResult.getTracks().getItems()[0];
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
         }
+    }
 
-        String[] ids = new String[songs.size()];
+    public static List<Song> getSpotifySongs(Track[] trackIds) {
+        checkSpotifyCredentials();
 
-        for (Song song : songs) {
-            Track track = searchTrack(song.getTitle() + " " + song.getArtist());
-            assert track != null;
-            song.setSpotifyId(track.getId());
-
-            ids[songs.indexOf(song)] = song.getSpotifyId();
+        String[] ids = new String[trackIds.length];
+        for (int i = 0; i < trackIds.length; i++) {
+            ids[i] = trackIds[i].getId();
         }
 
         GetSeveralTracksRequest getSeveralTracksRequest = spotifyApi.getSeveralTracks(ids)
@@ -128,7 +137,6 @@ public class SpotifyApiController {
 
         try {
             final Track[] tracks = getSeveralTracksRequest.execute();
-
             return getSongsWithMetadata(tracks);
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
@@ -165,27 +173,9 @@ public class SpotifyApiController {
         }
     }
 
-    public static Track searchTrack(String query) {
-        if (spotifyApi.getAccessToken() == null) {
-            clientCredentials_Sync();
-        }
-
-        SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
-                .includeExternal("audio")
-                .build();
-
-        try {
-            SearchResult searchResult = searchItemRequest.execute();
-            return searchResult.getTracks().getItems()[0];
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            System.out.println("Error: " + e.getMessage());
-            return null;
-        }
-    }
-
     @NotNull
     public static List<Song> getSongsWithMetadata(@NotNull Track[] tracks) {
-        clientCredentials_Sync();
+        checkSpotifyCredentials();
 
         List<Song> songs = new ArrayList<>();
 
@@ -203,5 +193,11 @@ public class SpotifyApiController {
             songs.add(song);
         }
         return songs;
+    }
+
+    public static void checkSpotifyCredentials() {
+        if (spotifyApi.getAccessToken() == null) {
+            clientCredentials_Sync();
+        }
     }
 }
