@@ -25,6 +25,8 @@ public class OpenAiController {
     private static final String MODEL = "gpt-4o";
     private static final double TEMPERATURE = 0;
     private static final int MAX_TOKENS = 3500;
+    private static final int TIMEOUT_DURATION_IN_SECONDS = 120;
+    private static final String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects. Create a list of %s unique songs, found in the Spotify library, based off the following statement: \"%s\". Be sure to check that there are no duplicates. Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].";
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public String getOpenAiResponseFromForm(@RequestBody MultiValueMap<String, String> formBody) {
@@ -43,7 +45,7 @@ public class OpenAiController {
 
     private String processRequest(String length, String input) {
         List<ChatMessage> messages = getChatMessages(length, input);
-        OpenAiService service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(60));
+        OpenAiService service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
         try {
             ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
                     .builder()
@@ -62,7 +64,6 @@ public class OpenAiController {
             List<Song> songs = getSongObjectsFromJson(jsonResponse);
             List<Song> results = getSpotifySongs(songs);
 
-            System.out.println("Songs from Spotify: " + results);
             Gson gson = new Gson();
             return gson.toJson(results);
         } catch (Exception e) {
@@ -73,8 +74,7 @@ public class OpenAiController {
 
     @NotNull
     private static List<ChatMessage> getChatMessages(String length, String input) {
-        String message = String.format("You are an assistant that only responds in JSON format strictly as an array of objects. Create a list of %s unique songs, found in the Spotify library, based off the following statement: \"%s\". Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].", length, input);
-
+        String message = String.format(PROMPT, length, input);
         List<ChatMessage> messages = new ArrayList<>();
         ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), message);
         messages.add(userMessage);
@@ -97,7 +97,6 @@ public class OpenAiController {
             song.setDuration(songObject.get("duration").getAsString());
             songs.add(song);
         }
-
         return songs;
     }
 }

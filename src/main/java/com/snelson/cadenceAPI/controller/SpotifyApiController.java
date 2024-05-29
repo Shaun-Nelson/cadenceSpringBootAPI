@@ -16,11 +16,13 @@ import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
+import se.michaelthelin.spotify.model_objects.credentials.ClientCredentials;
 import se.michaelthelin.spotify.model_objects.special.SearchResult;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
+import se.michaelthelin.spotify.requests.authorization.client_credentials.ClientCredentialsRequest;
 import se.michaelthelin.spotify.requests.data.search.SearchItemRequest;
 import se.michaelthelin.spotify.requests.data.tracks.GetSeveralTracksRequest;
 
@@ -45,8 +47,9 @@ public class SpotifyApiController {
             .build();
     private static final AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
             .build();
+    private static final ClientCredentialsRequest clientCredentialsRequest = spotifyApi.clientCredentials()
+            .build();
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
-    private static String spotifyCode = "";
     private static final HttpServletResponse response = new Response();
 
     @GetMapping("/api/login/spotify")
@@ -66,7 +69,6 @@ public class SpotifyApiController {
                 return;
             }
 
-            spotifyCode = code;
             spotifyApi.authorizationCode(code);
             AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
 
@@ -96,8 +98,22 @@ public class SpotifyApiController {
         }
     }
 
+    public static void clientCredentials_Sync() {
+        try {
+            final ClientCredentials clientCredentials = clientCredentialsRequest.execute();
+
+            spotifyApi.setAccessToken(clientCredentials.getAccessToken());
+
+            System.out.println("Expires in: " + clientCredentials.getExpiresIn());
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
     public static List<Song> getSpotifySongs(List<Song> songs) {
-        checkForAndRefreshAccessToken();
+        if (spotifyApi.getAccessToken() == null) {
+            clientCredentials_Sync();
+        }
 
         String[] ids = new String[songs.size()];
 
@@ -157,16 +173,10 @@ public class SpotifyApiController {
         }
     }
 
-    public static void checkForAndRefreshAccessToken() {
-        if (spotifyApi.getAccessToken() == null) {
-            authorizationCodeRefresh_Sync();
-        } else {
-            spotifyApi.setAccessToken(spotifyApi.getAccessToken());
-        }
-    }
-
     public static Track searchTrack(String query) {
-        checkForAndRefreshAccessToken();
+        if (spotifyApi.getAccessToken() == null) {
+            clientCredentials_Sync();
+        }
 
         SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
                 .includeExternal("audio")
@@ -183,7 +193,7 @@ public class SpotifyApiController {
 
     @NotNull
     public static List<Song> getSongsWithMetadata(@NotNull Track[] tracks) {
-        checkForAndRefreshAccessToken();
+        clientCredentials_Sync();
 
         List<Song> songs = new ArrayList<>();
 
