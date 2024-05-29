@@ -9,7 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -47,6 +46,7 @@ public class SpotifyApiController {
     private static final AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
             .build();
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
+    private static String spotifyCode = "";
     private static final HttpServletResponse response = new Response();
 
     @GetMapping("/api/login/spotify")
@@ -66,6 +66,7 @@ public class SpotifyApiController {
                 return;
             }
 
+            spotifyCode = code;
             spotifyApi.authorizationCode(code);
             AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
 
@@ -96,16 +97,12 @@ public class SpotifyApiController {
     }
 
     public static List<Song> getSpotifySongs(List<Song> songs) {
-//        if (spotifyApi.getRefreshToken() == null) {
-//            authorizationCode_Sync();
-//        } else {
-//            authorizationCodeRefresh_Sync();
-//        }
+        checkForAndRefreshAccessToken();
 
         String[] ids = new String[songs.size()];
 
         for (Song song : songs) {
-            Track track = searchTrack(song.getTitle());
+            Track track = searchTrack(song.getTitle() + " " + song.getArtist());
             assert track != null;
             song.setSpotifyId(track.getId());
 
@@ -160,7 +157,17 @@ public class SpotifyApiController {
         }
     }
 
+    public static void checkForAndRefreshAccessToken() {
+        if (spotifyApi.getAccessToken() == null) {
+            authorizationCodeRefresh_Sync();
+        } else {
+            spotifyApi.setAccessToken(spotifyApi.getAccessToken());
+        }
+    }
+
     public static Track searchTrack(String query) {
+        checkForAndRefreshAccessToken();
+
         SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
                 .includeExternal("audio")
                 .build();
@@ -174,27 +181,17 @@ public class SpotifyApiController {
         }
     }
 
-    public static Track[] getAllTracks(String[] ids) {
-        GetSeveralTracksRequest getSeveralTracksRequest = spotifyApi.getSeveralTracks(ids)
-                .build();
-
-        try {
-            return getSeveralTracksRequest.execute();
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            System.out.println("Error: " + e.getMessage());
-            return null;
-        }
-    }
-
     @NotNull
     public static List<Song> getSongsWithMetadata(@NotNull Track[] tracks) {
+        checkForAndRefreshAccessToken();
+
         List<Song> songs = new ArrayList<>();
 
         for (Track track : tracks) {
             Song song = Song.builder()
                     .title(track.getName())
                     .artist(track.getArtists()[0].getName())
-                    .duration(String.valueOf(track.getDurationMs() / 1000))
+                    .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
                     .previewUrl(track.getPreviewUrl())
                     .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
                     .imageUrl(track.getAlbum().getImages()[0].getUrl())
