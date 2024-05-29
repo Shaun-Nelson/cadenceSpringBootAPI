@@ -35,9 +35,11 @@ public class Song {
     private String artist;
 
     @NotNull(message = "Duration is required")
-    private String duration;
+    private Integer duration;
 
     private String previewUrl;
+    private String externalUrl;
     private String imageUrl;
     private String album;
+    private String spotifyId;
 }
