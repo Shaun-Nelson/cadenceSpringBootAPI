@@ -1,6 +1,11 @@
 package com.snelson.cadenceAPI.service;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.snelson.cadenceAPI.model.Playlist;
+import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
@@ -38,14 +43,11 @@ public class PlaylistService {
         }
     }
 
-    public Playlist createPlaylist(String username, Playlist playlist) {
+    public void createPlaylist(Playlist playlist) {
         try {
-            User user = userRepository.findByUsername(username);
-            playlist.setUser(user);
-            return playlistRepository.save(playlist);
+            playlistRepository.save(playlist);
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());
-            return null;
         }
     }
 
@@ -69,6 +71,30 @@ public class PlaylistService {
             playlistRepository.deleteById(id);
         } catch (Exception e) {
             System.out.println("Error deleting playlist: " + e.getMessage());
+        }
+    }
+
+    public Playlist convertJsonToPlaylist(String json) {
+        try {
+            Gson gson = new Gson();
+            JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
+
+            Playlist playlist = new Playlist();
+            playlist.setName(jsonObject.get("name").getAsString());
+            playlist.setDescription(jsonObject.get("description").getAsString());
+
+            JsonArray songsJsonArray = JsonParser.parseString(jsonObject.get("songs").getAsString()).getAsJsonArray();
+            List<Song> songs = new ArrayList<>();
+            for (int i = 0; i < songsJsonArray.size(); i++) {
+                Song song = gson.fromJson(songsJsonArray.get(i), Song.class);
+                songs.add(song);
+            }
+            playlist.setSongs(songs);
+
+            return playlist;
+        } catch (Exception e) {
+            System.out.println("Error converting JSON to Playlist: " + e.getMessage());
+            return null;
         }
     }
 }

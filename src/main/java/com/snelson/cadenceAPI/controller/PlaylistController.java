@@ -1,5 +1,7 @@
 package com.snelson.cadenceAPI.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
@@ -47,15 +49,15 @@ public class PlaylistController {
         }
     }
 
-    @PostMapping("/{username}")
-    public ResponseEntity<String> createPlaylist(@PathVariable("username") String username, @Valid @RequestBody Playlist playlist) {
+    @PostMapping
+    public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlist) {
         try {
-            Playlist newPlaylist = playlistService.createPlaylist(username, playlist);
+            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlist);
             if (newPlaylist == null) {
                 return ResponseEntity.badRequest().body("Playlist creation failed");
-            } else {
-                return ResponseEntity.ok(newPlaylist.toString());
             }
+            playlistService.createPlaylist(newPlaylist);
+            return ResponseEntity.ok(newPlaylist.toString());
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());
             return ResponseEntity.badRequest().body("Playlist creation failed");

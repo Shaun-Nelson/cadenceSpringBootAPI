@@ -1,13 +1,11 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.snelson.cadenceAPI.model.Song;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.catalina.connector.Response;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -77,7 +75,7 @@ public class SpotifyApiController {
             // Set access and refresh token for further "spotifyApi" object usage
             spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
             spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
-            setCookies(authorizationCodeCredentials.getExpiresIn());
+            setCookies(authorizationCodeCredentials.getExpiresIn(), response);
 
             response.sendRedirect(System.getenv("CLIENT_URL"));
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -90,7 +88,7 @@ public class SpotifyApiController {
             final AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRefreshRequest.execute();
 
             spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
-            setCookies(authorizationCodeCredentials.getExpiresIn());
+            setCookies(authorizationCodeCredentials.getExpiresIn(), response);
 
             System.out.println("Expires in: " + authorizationCodeCredentials.getExpiresIn());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -149,25 +147,19 @@ public class SpotifyApiController {
         return builder.toString();
     }
 
-    public static void setCookies(Integer accessTokenExpiresIn) {
+    public static void setCookies(Integer accessTokenExpiresIn, HttpServletResponse response) {
         try {
-        ResponseCookie accessToken = ResponseCookie.from("access_token", spotifyApi.getAccessToken())
-                .maxAge(accessTokenExpiresIn)
-                .secure(true)
-                .sameSite(System.getenv("ENV").equals("DEV") ? "lax" : "none")
-                .path("/")
-                .build();
+            Cookie accessToken = new Cookie("access_token", spotifyApi.getAccessToken());
+            accessToken.setMaxAge(accessTokenExpiresIn);
+            accessToken.setSecure(System.getenv("ENV").equals("production"));
+            accessToken.setPath("/");
+            response.addCookie(accessToken);
 
-        ResponseCookie refreshToken = ResponseCookie.from("refresh_token", spotifyApi.getRefreshToken())
-                .maxAge(EXPIRES_IN)
-                .secure(true)
-                .sameSite(System.getenv("ENV").equals("DEV") ? "lax" : "none")
-                .path("/")
-                .build();
-
-        ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessToken.toString(), refreshToken.toString())
-                .build();
+            Cookie refreshToken = new Cookie("refresh_token", spotifyApi.getRefreshToken());
+            refreshToken.setMaxAge(EXPIRES_IN);
+            refreshToken.setSecure(System.getenv("ENV").equals("production"));
+            refreshToken.setPath("/");
+            response.addCookie(refreshToken);
         } catch (Exception e) {
             System.out.println("Error setting cookies: " + e.getMessage());
         }

@@ -14,12 +14,14 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class, DataSourceAutoConfiguration.class})
 @EnableMongoRepositories
 @EnableMongoAuditing
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @Log
 public class CadenceApiApplication implements CommandLineRunner{
 
