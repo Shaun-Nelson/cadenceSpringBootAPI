@@ -26,7 +26,7 @@ public class OpenAiController {
     private static final int MAX_TOKENS = 3500;
 
     @PostMapping(consumes = "application/x-www-form-urlencoded", produces = "application/json")
-    public List<Song> getOpenAiResponse(@RequestBody MultiValueMap<String, String> body) {
+    public String getOpenAiResponse(@RequestBody MultiValueMap<String, String> body) {
         String length = body.getFirst("length");
         String prompt = body.getFirst("prompt");
 
@@ -49,11 +49,12 @@ public class OpenAiController {
                     .getContent();
 
             List<Song> songs = getSongsFromJson(jsonResponse);
-            
-            return getSpotifySongs(songs);
+            List<Song> spotifySongs = getSpotifySongs(songs);
+
+            return new Gson().toJson(spotifySongs);
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
-            return new ArrayList<>();
+            return "Error: " + e.getMessage();
         }
     }
 
@@ -70,20 +71,17 @@ public class OpenAiController {
 
     @NotNull
     public static List<Song> getSongsFromJson(String jsonResponse) {
-        Gson gson = new Gson();
-        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
         List<Song> songs = new ArrayList<>();
+        JsonArray jsonArray = JsonParser.parseString(jsonResponse).getAsJsonArray();
 
         for (JsonElement element : jsonArray) {
-            JsonObject jsonObject = element.getAsJsonObject();
-
-            Song song = Song.builder()
-                    .title(jsonObject.get("title").getAsString())
-                    .artist(jsonObject.get("artist").getAsString())
-                    .album(jsonObject.get("album").getAsString())
-                    .duration(jsonObject.get("duration").getAsInt())
-                    .build();
-
+            JsonObject songObject = element.getAsJsonObject();
+            Song song = new Song();
+            song.setId(songObject.get("id").getAsInt());
+            song.setTitle(songObject.get("title").getAsString());
+            song.setArtist(songObject.get("artist").getAsString());
+            song.setAlbum(songObject.get("album").getAsString());
+            song.setDuration(songObject.get("duration").getAsString());
             songs.add(song);
         }
 

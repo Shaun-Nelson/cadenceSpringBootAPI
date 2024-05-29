@@ -17,7 +17,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Song {
 
     @Id
-    private String id;
+    private Integer id;
 
     @CreatedDate
     private String createdDate;
@@ -35,7 +35,7 @@ public class Song {
     private String artist;
 
     @NotNull(message = "Duration is required")
-    private Integer duration;
+    private String duration;
 
     private String previewUrl;
     private String externalUrl;

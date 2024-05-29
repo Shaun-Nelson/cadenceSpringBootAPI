@@ -9,6 +9,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
@@ -16,7 +18,6 @@ import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import se.michaelthelin.spotify.model_objects.special.SearchResult;
-import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
@@ -38,13 +39,11 @@ public class SpotifyApiController {
             .build();
     private static final String scope = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative";
     private static final String state = generateRandomString(16);
-    private static final String code = "";
     private static final AuthorizationCodeUriRequest authorizationCodeUriRequest = spotifyApi.authorizationCodeUri()
             .scope(scope)
             .state(state)
             .show_dialog(true)
             .build();
-    private static final AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
     private static final AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
             .build();
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
@@ -60,16 +59,22 @@ public class SpotifyApiController {
     }
 
     @GetMapping("/api/callback")
-    public static void authorizationCode_Sync(HttpServletResponse response) {
+    public static void authorizationCode_Sync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
         try {
+            if (!state.equals(SpotifyApiController.state)) {
+                System.out.println("State mismatch");
+                return;
+            }
+
+            spotifyApi.authorizationCode(code);
+            AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
+
             final AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRequest.execute();
 
             // Set access and refresh token for further "spotifyApi" object usage
             spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
             spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
             setCookies(authorizationCodeCredentials.getExpiresIn());
-
-            System.out.println("Expires in: " + authorizationCodeCredentials.getExpiresIn());
 
             response.sendRedirect(System.getenv("CLIENT_URL"));
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -90,19 +95,19 @@ public class SpotifyApiController {
         }
     }
 
-    public static List<Song> getSpotifySongs(List<Song> songs) throws IOException {
-        if (spotifyApi.getRefreshToken() == null) {
-            authorizationCode_Sync(response);
-        } else {
-            authorizationCodeRefresh_Sync();
-        }
+    public static List<Song> getSpotifySongs(List<Song> songs) {
+//        if (spotifyApi.getRefreshToken() == null) {
+//            authorizationCode_Sync();
+//        } else {
+//            authorizationCodeRefresh_Sync();
+//        }
 
         String[] ids = new String[songs.size()];
 
         for (Song song : songs) {
-            Paging<Track> track = searchTrack(song.getTitle());
+            Track track = searchTrack(song.getTitle());
             assert track != null;
-            song.setSpotifyId(track.getItems()[0].getId());
+            song.setSpotifyId(track.getId());
 
             ids[songs.indexOf(song)] = song.getSpotifyId();
         }
@@ -155,14 +160,26 @@ public class SpotifyApiController {
         }
     }
 
-    public static Paging<Track> searchTrack(String query) {
+    public static Track searchTrack(String query) {
         SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
                 .includeExternal("audio")
                 .build();
 
         try {
             SearchResult searchResult = searchItemRequest.execute();
-            return searchResult.getTracks();
+            return searchResult.getTracks().getItems()[0];
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public static Track[] getAllTracks(String[] ids) {
+        GetSeveralTracksRequest getSeveralTracksRequest = spotifyApi.getSeveralTracks(ids)
+                .build();
+
+        try {
+            return getSeveralTracksRequest.execute();
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
             return null;
@@ -171,13 +188,13 @@ public class SpotifyApiController {
 
     @NotNull
     public static List<Song> getSongsWithMetadata(@NotNull Track[] tracks) {
-        List<Song> songs = new ArrayList<Song>();
+        List<Song> songs = new ArrayList<>();
 
         for (Track track : tracks) {
             Song song = Song.builder()
                     .title(track.getName())
                     .artist(track.getArtists()[0].getName())
-                    .duration(track.getDurationMs())
+                    .duration(String.valueOf(track.getDurationMs() / 1000))
                     .previewUrl(track.getPreviewUrl())
                     .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
                     .imageUrl(track.getAlbum().getImages()[0].getUrl())
