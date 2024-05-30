@@ -46,18 +46,4 @@ public class Playlist {
         public int getSongCount() {
             return songs.size();
         }
-
-        @Override
-        public String toString() {
-                return "Playlist{" +
-                        "id='" + id + '\'' +
-                        ", createdDate='" + createdDate + '\'' +
-                        ", lastModifiedDate='" + lastModifiedDate + '\'' +
-                        ", version=" + version +
-                        ", name='" + name + '\'' +
-                        ", songs=" + songs +
-                        ", description='" + description + '\'' +
-                        ", link='" + link + '\'' +
-                        '}';
-        }
 }

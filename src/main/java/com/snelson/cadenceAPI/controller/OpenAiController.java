@@ -25,7 +25,7 @@ public class OpenAiController {
     private static final double TEMPERATURE = 0;
     private static final int MAX_TOKENS = 3500;
     private static final int TIMEOUT_DURATION_IN_SECONDS = 120;
-    private static final String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique songs, found in the Spotify library, based off the following statement: \"%s\". Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].";
+    private static final String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].";
     private static final String PROMPT2 = "Create an array of %s unique! songs, queried from the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track IDs in a JSON array format, with no leading or trailing characters!. Each ID should be a unique string.";
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

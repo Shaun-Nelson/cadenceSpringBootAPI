@@ -1,7 +1,5 @@
 package com.snelson.cadenceAPI.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
