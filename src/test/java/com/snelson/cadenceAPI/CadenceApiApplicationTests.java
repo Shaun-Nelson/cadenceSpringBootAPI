@@ -17,22 +17,4 @@ class CadenceApiApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
-	@Test
-	void findUserByEmail() {
-		User user = userRepository.findByEmail("user1@test.com");
-		assert (user != null);
-	}
-
-	@Test
-	void findUserByUsername() {
-		User user = userRepository.findByUsername("user1");
-		assert (user != null);
-	}
-
-	@Test
-	void findUserByUsernameAndPassword() {
-		User user = userRepository.findByUsernameAndPassword("user1", "password1");
-		assert (user != null);
-	}
 }

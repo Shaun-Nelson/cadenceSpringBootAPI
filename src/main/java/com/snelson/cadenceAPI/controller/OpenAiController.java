@@ -7,6 +7,7 @@ import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -21,12 +22,16 @@ import static com.snelson.cadenceAPI.controller.SpotifyApiController.*;
 @RequestMapping("/api/openai")
 public class OpenAiController {
 
+    @Value("${OPENAI_API_KEY}")
+    private String OPENAI_API_KEY;
+
     private static final String MODEL = "gpt-4o";
     private static final double TEMPERATURE = 0;
     private static final int MAX_TOKENS = 3500;
     private static final int TIMEOUT_DURATION_IN_SECONDS = 120;
     private static final String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].";
-    private static final String PROMPT2 = "Create an array of %s unique! songs, queried from the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track IDs in a JSON array format, with no leading or trailing characters!. Each ID should be a unique string.";
+    private static final String PROMPT2 = "Create an array of %s unique! songs, queried from the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track IDs in a JSON array format, with no leading or trailing characters!.";
+    private final SpotifyApiController spotifyApiController = new SpotifyApiController();
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public String getOpenAiResponseFromForm(@RequestBody MultiValueMap<String, String> formBody) {
@@ -45,7 +50,7 @@ public class OpenAiController {
 
     private String processRequest(String length, String input) {
         List<ChatMessage> messages = getChatMessages(length, input);
-        OpenAiService service = new OpenAiService(System.getenv("OPENAI_API_KEY"), Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
+        OpenAiService service = new OpenAiService(OPENAI_API_KEY, Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
         try {
             ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
                     .builder()
@@ -61,9 +66,8 @@ public class OpenAiController {
                     .getMessage()
                     .getContent();
 
-            Gson gson = new Gson();
             Track[] trackIds = getTrackIdsFromJson(jsonResponse);
-            List<Song> songs = getSpotifySongs(trackIds);
+            List<Song> songs = spotifyApiController.getSpotifySongs(trackIds);
 
 
             return new Gson().toJson(songs);
@@ -74,7 +78,7 @@ public class OpenAiController {
     }
 
     @NotNull
-    private static List<ChatMessage> getChatMessages(String length, String input) {
+    private List<ChatMessage> getChatMessages(String length, String input) {
         String message = String.format(PROMPT, length, input);
         List<ChatMessage> messages = new ArrayList<>();
         ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), message);
@@ -84,14 +88,14 @@ public class OpenAiController {
     }
 
     @NotNull
-    public static Track[] getTrackIdsFromJson(String jsonResponse) {
+    private Track[] getTrackIdsFromJson(String jsonResponse) {
         Gson gson = new Gson();
         JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
         List<Track> responseList = new ArrayList<>();
 
         for (JsonElement element : jsonArray) {
             JsonObject jsonObject = element.getAsJsonObject();
-            Track track = searchTrack(jsonObject.get("title").getAsString() + " " + jsonObject.get("artist").getAsString());
+            Track track = spotifyApiController.searchTrack(jsonObject.get("title").getAsString() + " " + jsonObject.get("artist").getAsString());
             if (track != null) {
                 responseList.add(track);
             }
