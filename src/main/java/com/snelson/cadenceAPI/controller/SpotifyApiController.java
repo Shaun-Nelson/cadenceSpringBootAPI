@@ -5,6 +5,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,19 +32,19 @@ import java.util.List;
 public class SpotifyApiController {
 
     private final String CLIENT_URL = System.getenv("CLIENT_URL");
-    private final String ENV = System.getenv("ENV");
+    private static final String ENV = System.getenv("ENV");
     private static final SpotifyApi spotifyApi = new SpotifyApi.Builder()
             .setClientId(System.getenv("CLIENT_ID"))
             .setClientSecret(System.getenv("CLIENT_SECRET"))
             .setRedirectUri(SpotifyHttpManager.makeUri(System.getenv("REDIRECT_URI")))
             .build();
-    private final String state = generateRandomString(16);
+    private final String STATE = generateRandomString(16);
     private final AuthorizationCodeUriRequest authorizationCodeUriRequest = spotifyApi.authorizationCodeUri()
             .scope("playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative")
-            .state(state)
+            .state(STATE)
             .show_dialog(true)
             .build();
-    private final AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh().build();
+    private static final AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh().build();
     private static final ClientCredentialsRequest clientCredentialsRequest = spotifyApi.clientCredentials().build();
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
 
@@ -59,7 +60,7 @@ public class SpotifyApiController {
     @GetMapping("/api/callback")
     public void authorizationCodeSync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
         try {
-            if (!state.equals(this.state)) {
+            if (!state.equals(this.STATE)) {
                 System.out.println("State mismatch");
                 return;
             }
@@ -77,12 +78,11 @@ public class SpotifyApiController {
         }
     }
 
-    public void authorizationCodeRefreshSync(HttpServletResponse response) {
+    public static void authorizationCodeRefreshSync() {
         try {
             AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRefreshRequest.execute();
 
             spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
-            setCookies(authorizationCodeCredentials.getExpiresIn(), response);
 
             System.out.println("Expires in: " + authorizationCodeCredentials.getExpiresIn());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -102,7 +102,7 @@ public class SpotifyApiController {
     }
 
     public static Track searchTrack(String query) {
-        checkSpotifyCredentials();
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
 
         SearchItemRequest searchItemRequest = spotifyApi.searchItem(query, ModelObjectType.TRACK.getType())
                 .includeExternal("audio")
@@ -118,7 +118,7 @@ public class SpotifyApiController {
     }
 
     public static List<Song> getSpotifySongs(Track[] trackIds) {
-        checkSpotifyCredentials();
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
 
         String[] ids = new String[trackIds.length];
         for (int i = 0; i < trackIds.length; i++) {
@@ -147,7 +147,7 @@ public class SpotifyApiController {
         return builder.toString();
     }
 
-    private void setCookies(int accessTokenExpiresIn, HttpServletResponse response) {
+    private static void setCookies(int accessTokenExpiresIn, HttpServletResponse response) {
         try {
             Cookie accessToken = new Cookie("access_token", spotifyApi.getAccessToken());
             accessToken.setMaxAge(accessTokenExpiresIn);
@@ -167,7 +167,7 @@ public class SpotifyApiController {
 
     @NotNull
     private static List<Song> getSongsWithMetadata(@NotNull Track[] tracks) {
-        checkSpotifyCredentials();
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
 
         List<Song> songs = new ArrayList<>();
 
@@ -187,9 +187,13 @@ public class SpotifyApiController {
         return songs;
     }
 
-    private static void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null) {
-            clientCredentials_Sync();
+    private static void checkSpotifyCredentials(@CookieValue(value = "access_token", required = false) String accessToken, @CookieValue(value = "refresh_token", required = false) String refreshToken) {
+        if (spotifyApi.getAccessToken() == null || accessToken.isEmpty()) {
+            if (spotifyApi.getRefreshToken() != null && !refreshToken.isEmpty()) {
+                authorizationCodeRefreshSync();
+            } else {
+                clientCredentials_Sync();
+            }
         }
     }
 }
