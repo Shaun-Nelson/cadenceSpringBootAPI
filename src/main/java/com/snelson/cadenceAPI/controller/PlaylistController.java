@@ -1,16 +1,14 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.snelson.cadenceAPI.model.Playlist;
-import com.snelson.cadenceAPI.repository.PlaylistRepository;
-import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.PlaylistService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -19,71 +17,73 @@ import java.util.List;
 public class PlaylistController {
 
     @Autowired
-    private PlaylistRepository playlistRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private PlaylistService playlistService;
 
     @GetMapping("/user/{username}")
     public ResponseEntity<List<Playlist>> getPlaylists(@PathVariable("username") String username){
         try {
-            return ResponseEntity.ok(playlistService.getPlaylists(username));
+            List<Playlist> playlists = playlistService.getPlaylists(username);
+            if (playlists.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            return ResponseEntity.ok(playlists);
         } catch (Exception e) {
             System.out.println("Error getting playlists: " + e.getMessage());
-            return ResponseEntity.badRequest().body(new ArrayList<>());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<String> getPlaylistById(@PathVariable("id") String id) {
+    public ResponseEntity<Playlist> getPlaylistById(@PathVariable("id") String id) {
         try {
-            return ResponseEntity.ok(playlistService.getPlaylistById(id).toString());
+            Playlist playlist = playlistService.getPlaylistById(id);
+            if (playlist == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            return ResponseEntity.ok(playlist);
         } catch (Exception e) {
             System.out.println("Error getting playlist: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Playlist retrieval failed");
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping
-    public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlist) {
+    public ResponseEntity<Playlist> createPlaylist(@Valid @RequestBody String playlistJson) {
         try {
-            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlist);
+            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
             if (newPlaylist == null) {
-                return ResponseEntity.badRequest().body("Playlist creation failed");
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             playlistService.createPlaylist(newPlaylist);
-            return ResponseEntity.ok(newPlaylist.toString());
+            return new ResponseEntity<>(newPlaylist, HttpStatus.CREATED);
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Playlist creation failed");
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updatePlaylist(@PathVariable("id") String id, @Valid @RequestBody Playlist playlist) {
+    public ResponseEntity<Playlist> updatePlaylist(@PathVariable("id") String id, @Valid @RequestBody Playlist playlist) {
         try {
             Playlist updatedPlaylist = playlistService.updatePlaylist(id, playlist);
             if (updatedPlaylist == null) {
-                return ResponseEntity.badRequest().body("Playlist update failed");
-            } else {
-                return ResponseEntity.ok(updatedPlaylist.toString());
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
+            return ResponseEntity.ok(updatedPlaylist);
         } catch (Exception e) {
             System.out.println("Error updating playlist: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Playlist update failed");
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/{id}")
-    public void deletePlaylist(@PathVariable("id") String id) {
+    public ResponseEntity<Void> deletePlaylist(@PathVariable("id") String id) {
         try {
             playlistService.deletePlaylist(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
             System.out.println("Error deleting playlist: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

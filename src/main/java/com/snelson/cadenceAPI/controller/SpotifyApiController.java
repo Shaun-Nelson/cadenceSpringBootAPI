@@ -5,10 +5,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.enums.ModelObjectType;
@@ -29,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api")
 public class SpotifyApiController {
 
     private final String CLIENT_URL = System.getenv("CLIENT_URL");
@@ -48,7 +46,7 @@ public class SpotifyApiController {
     private static final ClientCredentialsRequest clientCredentialsRequest = spotifyApi.clientCredentials().build();
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
 
-    @GetMapping("/api/login/spotify")
+    @GetMapping("/login/spotify")
     public void authorizationCodeUriSync(HttpServletResponse response) {
         try {
             response.sendRedirect(authorizationCodeUriRequest.execute().toString());
@@ -57,7 +55,7 @@ public class SpotifyApiController {
         }
     }
 
-    @GetMapping("/api/callback")
+    @GetMapping("/callback")
     public void authorizationCodeSync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
         try {
             if (!state.equals(this.STATE)) {

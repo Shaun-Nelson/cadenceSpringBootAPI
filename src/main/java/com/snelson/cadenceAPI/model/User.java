@@ -1,9 +1,6 @@
 package com.snelson.cadenceAPI.model;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -12,8 +9,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.schema.MongoJsonSchema;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
 
@@ -51,9 +48,9 @@ public class User {
     private List<Playlist> playlists;
 
     @PrePersist
+    @PreUpdate
     public void save() {
-        int saltRounds = 10;
-        this.password = BCrypt.hashpw(this.password, BCrypt.gensalt(saltRounds));
+        this.password = BCrypt.hashpw(this.password, BCrypt.gensalt(16));
     }
 
     public boolean isCorrectPassword(String password) {
@@ -62,18 +59,5 @@ public class User {
 
     public boolean exists() {
         return this.id != null;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id='" + id + '\'' +
-                ", createdDate='" + createdDate + '\'' +
-                ", lastModifiedDate='" + lastModifiedDate + '\'' +
-                ", version=" + version +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", playlists=" + playlists +
-                '}';
     }
 }
