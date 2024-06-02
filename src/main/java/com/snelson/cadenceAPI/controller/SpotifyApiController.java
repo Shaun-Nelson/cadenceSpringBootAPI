@@ -8,12 +8,10 @@ import jakarta.validation.Valid;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.method.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
-import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import se.michaelthelin.spotify.model_objects.specification.*;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
@@ -88,13 +86,13 @@ public class SpotifyApiController {
         try {
             com.snelson.cadenceAPI.model.Playlist playlist = new Gson().fromJson(playlistJson, com.snelson.cadenceAPI.model.Playlist.class);
 
-            System.out.println("Playlist: " + playlist);
-            System.out.println("Tracks: " + playlist.getSongs());
-
             checkSpotifyCredentials();
 
             User user = getCurrentUser();
             Playlist newPlaylist = createPlaylist(user.getId(), playlist.getName(), playlist.getDescription());
+
+            System.out.println("Playlist ID: " + newPlaylist.getId());
+            System.out.println("Tracks to add: " + Arrays.toString(getTrackIds(playlist.getSongs())));
 
             addSongsToPlaylist(newPlaylist.getId(), getTrackIds(playlist.getSongs()));
 
@@ -103,16 +101,6 @@ public class SpotifyApiController {
             System.out.println("Error: " + e.getMessage());
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private static void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null || spotifyApi.getRefreshToken() == null) {
-            System.out.println("No access or refresh token, requesting client credentials...");
-            clientCredentials_Sync();
-        } else {
-            System.out.println("Refreshing access token...");
-            refreshSync();
         }
     }
 
@@ -146,12 +134,17 @@ public class SpotifyApiController {
         return createPlaylistRequest.execute();
     }
 
-    private static void addSongsToPlaylist(String playlistId, String[] trackIds) {
-        try {
-            spotifyApi.addItemsToPlaylist(playlistId, trackIds).build().execute();
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
+    private static void addSongsToPlaylist(String playlistId, String[] trackIds) throws IOException, ParseException, SpotifyWebApiException {
+        spotifyApi.addItemsToPlaylist(playlistId, trackIds).build().execute();
+    }
+
+    private static void checkSpotifyCredentials() {
+        if (spotifyApi.getAccessToken() == null) {
+            if (spotifyApi.getRefreshToken() != null) {
+                refreshSync();
+            } else {
+                clientCredentials_Sync();
+            }
         }
     }
 
@@ -165,7 +158,9 @@ public class SpotifyApiController {
 
     public static List<Track> getSpotifySongs(String[] trackIds) {
         checkSpotifyCredentials();
+
         List<Track> tracks = new ArrayList<>();
+
         for (String trackId : trackIds) {
             try {
                 tracks.add(spotifyApi.getTrack(trackId).build().execute());
@@ -179,6 +174,7 @@ public class SpotifyApiController {
 
     public static Track searchTrack(String query) {
         checkSpotifyCredentials();
+
         try {
             return spotifyApi.searchItem(query, "track").build().execute().getTracks().getItems()[0];
         } catch (IOException | SpotifyWebApiException | ParseException e) {

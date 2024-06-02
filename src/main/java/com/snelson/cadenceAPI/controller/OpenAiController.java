@@ -47,6 +47,7 @@ public class OpenAiController {
         List<ChatMessage> messages = getChatMessages(length, input);
         int TIMEOUT_DURATION_IN_SECONDS = 120;
         OpenAiService service = new OpenAiService(OPENAI_API_KEY, Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
+
         try {
             String MODEL = "gpt-4o";
             double TEMPERATURE = 0;
@@ -65,13 +66,13 @@ public class OpenAiController {
                     .getMessage()
                     .getContent();
 
-            String[] trackIds = getTrackIdsFromJson(jsonResponse);
-            List<Track> tracks = getSpotifySongs(trackIds);
+            String[] trackUris = getTrackIdsFromJson(jsonResponse);
+            List<Track> tracks = getSpotifySongs(trackUris);
 
             List<Song> songs = new ArrayList<>();
             for (Track track : tracks) {
                 songs.add(Song.builder()
-                        .spotifyId(track.getId())
+                        .spotifyId(track.getUri())
                         .title(track.getName())
                         .artist(track.getArtists()[0].getName())
                         .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
@@ -116,4 +117,3 @@ public class OpenAiController {
         return trackIds.toArray(new String[0]);
     }
 }
-
