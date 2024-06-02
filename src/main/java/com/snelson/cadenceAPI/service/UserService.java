@@ -68,20 +68,6 @@ public class UserService {
     }
 
     public User login(User user) {
-        try {
-            User existingUser = userRepository.findByUsername(user.getUsername());
-            if (existingUser == null) {
-                return null;
-            }
-
-            if (existingUser.isCorrectPassword(user.getPassword())) {
-                return existingUser;
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            System.out.println("Error logging in user: " + e.getMessage());
-            return null;
-        }
+        return userRepository.findByUsername(user.getUsername());
     }
 }

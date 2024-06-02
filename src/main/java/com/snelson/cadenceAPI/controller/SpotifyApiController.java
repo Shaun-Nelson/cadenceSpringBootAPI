@@ -1,11 +1,20 @@
 package com.snelson.cadenceAPI.controller;
 
+import com.google.gson.Gson;
+import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.model.Song;
+import com.snelson.cadenceAPI.service.PlaylistService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.view.RedirectView;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.enums.ModelObjectType;
@@ -38,7 +47,7 @@ public class SpotifyApiController {
             .build();
     private final String STATE = generateRandomString(16);
     private final AuthorizationCodeUriRequest authorizationCodeUriRequest = spotifyApi.authorizationCodeUri()
-            .scope("playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative")
+            .scope("playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email")
             .state(STATE)
             .show_dialog(true)
             .build();
@@ -47,20 +56,22 @@ public class SpotifyApiController {
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
 
     @GetMapping("/login/spotify")
-    public void authorizationCodeUriSync(HttpServletResponse response) {
+    public String authorizationCodeUriSync() {
         try {
-            response.sendRedirect(authorizationCodeUriRequest.execute().toString());
+            Gson gson = new Gson();
+            return gson.toJson(authorizationCodeUriRequest.execute());
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
+            return CLIENT_URL;
         }
     }
 
     @GetMapping("/callback")
-    public void authorizationCodeSync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
+    public RedirectView authorizationCodeSync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
         try {
             if (!state.equals(this.STATE)) {
                 System.out.println("State mismatch");
-                return;
+                return new RedirectView(CLIENT_URL);
             }
 
             AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
@@ -70,9 +81,29 @@ public class SpotifyApiController {
             spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
             setCookies(authorizationCodeCredentials.getExpiresIn(), response);
 
-            response.sendRedirect(CLIENT_URL);
+            return new RedirectView(CLIENT_URL);
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
+            return new RedirectView(CLIENT_URL);
+        }
+    }
+
+    @PostMapping("/playlists/spotify")
+    public ResponseEntity<Playlist> createSpotifyPlaylist(@Valid @RequestBody String playlistJson) {
+        try {
+            System.out.println("PLAYLIST JSON:" + playlistJson);
+            Gson gson = new Gson();
+            Playlist newPlaylist = gson.fromJson(playlistJson, Playlist.class);
+
+            if (newPlaylist == null) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            createSpotifyPlaylist(newPlaylist);
+
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.out.println("Error creating playlist: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -94,6 +125,43 @@ public class SpotifyApiController {
 
             spotifyApi.setAccessToken(clientCredentials.getAccessToken());
             System.out.println("Expires in: " + clientCredentials.getExpiresIn());
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void createSpotifyPlaylist(Playlist newPlaylist) throws IOException, ParseException, SpotifyWebApiException {
+        String name = newPlaylist.getName();
+        String description = newPlaylist.getDescription();
+        List<Song> songs = newPlaylist.getSongs();
+
+        se.michaelthelin.spotify.model_objects.specification.Playlist playlist = initializeSpotifyPlaylist(name, description);
+
+        addSongsToPlaylist(playlist.getId(), songs);
+    }
+
+    private se.michaelthelin.spotify.model_objects.specification.Playlist initializeSpotifyPlaylist(String name, String description) throws IOException, ParseException, SpotifyWebApiException {
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
+
+        String userId = spotifyApi.getCurrentUsersProfile().build().execute().getId();
+
+        return spotifyApi.createPlaylist(userId, name)
+                .description(description)
+                .public_(true)
+                .collaborative(false)
+                .build().execute();
+    }
+
+    private void addSongsToPlaylist(String playlistId, List<Song> songs) {
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
+
+        String[] uris = new String[songs.size()];
+        for (int i = 0; i < songs.size(); i++) {
+            uris[i] = songs.get(i).getExternalUrl();
+        }
+
+        try {
+            spotifyApi.addItemsToPlaylist(playlistId, uris).build().execute();
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -186,12 +254,12 @@ public class SpotifyApiController {
     }
 
     private static void checkSpotifyCredentials(@CookieValue(value = "access_token", required = false) String accessToken, @CookieValue(value = "refresh_token", required = false) String refreshToken) {
-        if (spotifyApi.getAccessToken() == null || accessToken.isEmpty()) {
-            if (spotifyApi.getRefreshToken() != null && !refreshToken.isEmpty()) {
-                authorizationCodeRefreshSync();
-            } else {
-                clientCredentials_Sync();
-            }
+        if (accessToken == null && refreshToken == null) {
+            clientCredentials_Sync();
+        } else if (accessToken != null) {
+            spotifyApi.setAccessToken(accessToken);
+        } else {
+            authorizationCodeRefreshSync();
         }
     }
 }

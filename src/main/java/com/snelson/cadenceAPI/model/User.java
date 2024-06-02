@@ -4,17 +4,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
-
-import static org.springframework.data.mongodb.core.schema.JsonSchemaProperty.string;
 
 @Document
 @Data
@@ -22,6 +20,9 @@ import static org.springframework.data.mongodb.core.schema.JsonSchemaProperty.st
 @NoArgsConstructor
 @Builder
 public class User {
+
+//    @Autowired
+//    private PasswordEncoder passwordEncoder;
 
     @Id
     private String id;
@@ -47,15 +48,15 @@ public class User {
     @DBRef
     private List<Playlist> playlists;
 
-    @PrePersist
-    @PreUpdate
-    public void save() {
-        this.password = BCrypt.hashpw(this.password, BCrypt.gensalt(16));
-    }
-
-    public boolean isCorrectPassword(String password) {
-        return BCrypt.checkpw(password, this.password);
-    }
+//    @PrePersist
+//    @PreUpdate
+//    public void savePassword() {
+//        this.password = passwordEncoder.encode(this.password);
+//    }
+//
+//    public boolean isCorrectPassword(String password) {
+//        return passwordEncoder.matches(password, this.password);
+//    }
 
     public boolean exists() {
         return this.id != null;

@@ -7,6 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
 public interface PlaylistRepository extends MongoRepository<Playlist, String> {
-    public Playlist findByName(String name);
-    public List<Playlist> findAllByUser(User user);
+
+        List<Playlist> findAllByUser(User user);
 }

@@ -1,5 +1,6 @@
 package com.snelson.cadenceAPI.controller;
 
+import com.google.gson.Gson;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.UserService;
@@ -45,14 +46,17 @@ public class UserController {
     }
 
     @PostMapping(value = "/login", produces = "application/json")
-    public ResponseEntity<User> loginUser(@Valid @RequestBody User user) {
+    public ResponseEntity<String> loginUser(@Valid @RequestBody User user) {
         try {
             userService.login(user);
 
-            return new ResponseEntity<User>(user, HttpStatus.OK);
+            Gson gson = new Gson();
+            String result = gson.toJson(user);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
-            return new ResponseEntity<User>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<String>(HttpStatus.BAD_REQUEST);
         }
     }
 
