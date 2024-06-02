@@ -17,9 +17,11 @@ public class DefaultSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/",
+                                "/login",
                                 "/error",
                                 "/api/callback",
                                 "/api/login/spotify",
+                                "/api/playlists/spotify",
                                 "/api/openai",
                                 "/api/users/signup",
                                 "/api/users/login",

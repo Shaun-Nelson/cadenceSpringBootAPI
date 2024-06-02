@@ -33,6 +33,7 @@ import se.michaelthelin.spotify.requests.data.tracks.GetSeveralTracksRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -89,20 +90,23 @@ public class SpotifyApiController {
     }
 
     @PostMapping("/playlists/spotify")
-    public ResponseEntity<Playlist> createSpotifyPlaylist(@Valid @RequestBody String playlistJson) {
+    public ResponseEntity<String> createSpotifyPlaylist(@Valid @RequestBody String playlistJson) {
         try {
-            System.out.println("PLAYLIST JSON:" + playlistJson);
+            System.out.println("Playlist JSON: " + playlistJson);
             Gson gson = new Gson();
             Playlist newPlaylist = gson.fromJson(playlistJson, Playlist.class);
+            System.out.println("New playlist: " + newPlaylist);
 
             if (newPlaylist == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            createSpotifyPlaylist(newPlaylist);
+            System.out.println("Creating playlist: " + newPlaylist.getName());
+            String newPlaylistLink = createSpotifyPlaylist(newPlaylist);
+            System.out.println("Playlist created: " + newPlaylist.getName());
 
-            return new ResponseEntity<>(HttpStatus.CREATED);
+            return new ResponseEntity<>(newPlaylistLink, HttpStatus.CREATED);
         } catch (Exception e) {
-            System.out.println("Error creating playlist: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -130,41 +134,34 @@ public class SpotifyApiController {
         }
     }
 
-    private void createSpotifyPlaylist(Playlist newPlaylist) throws IOException, ParseException, SpotifyWebApiException {
+    private String createSpotifyPlaylist(Playlist newPlaylist) throws IOException, ParseException, SpotifyWebApiException {
+        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
+
         String name = newPlaylist.getName();
         String description = newPlaylist.getDescription();
         List<Song> songs = newPlaylist.getSongs();
 
-        se.michaelthelin.spotify.model_objects.specification.Playlist playlist = initializeSpotifyPlaylist(name, description);
-
-        addSongsToPlaylist(playlist.getId(), songs);
-    }
-
-    private se.michaelthelin.spotify.model_objects.specification.Playlist initializeSpotifyPlaylist(String name, String description) throws IOException, ParseException, SpotifyWebApiException {
-        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
-
-        String userId = spotifyApi.getCurrentUsersProfile().build().execute().getId();
-
-        return spotifyApi.createPlaylist(userId, name)
-                .description(description)
-                .public_(true)
-                .collaborative(false)
-                .build().execute();
-    }
-
-    private void addSongsToPlaylist(String playlistId, List<Song> songs) {
-        checkSpotifyCredentials(spotifyApi.getAccessToken(), spotifyApi.getRefreshToken());
-
-        String[] uris = new String[songs.size()];
-        for (int i = 0; i < songs.size(); i++) {
-            uris[i] = songs.get(i).getExternalUrl();
-        }
-
         try {
-            spotifyApi.addItemsToPlaylist(playlistId, uris).build().execute();
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            System.out.println("Error: " + e.getMessage());
-        }
+            String userId = spotifyApi.getCurrentUsersProfile().build().execute().getId();
+
+            se.michaelthelin.spotify.model_objects.specification.Playlist playlist = spotifyApi.createPlaylist(userId, name)
+                    .description(description)
+                    .public_(false)
+                    .collaborative(false)
+                    .build().execute();
+
+            String[] uris = new String[songs.size()];
+            for (int i = 0; i < songs.size(); i++) {
+                uris[i] = songs.get(i).getExternalUrl();
+            }
+
+            spotifyApi.addItemsToPlaylist(playlist.getId(), uris).build().execute();
+
+            return playlist.getExternalUrls().getExternalUrls().get("spotify");
+            } catch (IOException | SpotifyWebApiException | ParseException e) {
+                System.out.println("Error creating playlist: " + e.getMessage());
+                return null;
+            }
     }
 
     public static Track searchTrack(String query) {
