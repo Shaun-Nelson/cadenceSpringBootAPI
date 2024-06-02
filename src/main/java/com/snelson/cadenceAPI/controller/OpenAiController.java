@@ -65,9 +65,22 @@ public class OpenAiController {
                     .getMessage()
                     .getContent();
 
-            Track[] trackIds = getTrackIdsFromJson(jsonResponse);
-            List<Song> songs = getSpotifySongs(trackIds);
+            String[] trackIds = getTrackIdsFromJson(jsonResponse);
+            List<Track> tracks = getSpotifySongs(trackIds);
 
+            List<Song> songs = new ArrayList<>();
+            for (Track track : tracks) {
+                songs.add(Song.builder()
+                        .spotifyId(track.getId())
+                        .title(track.getName())
+                        .artist(track.getArtists()[0].getName())
+                        .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
+                        .previewUrl(track.getPreviewUrl())
+                        .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
+                        .imageUrl(track.getAlbum().getImages()[0].getUrl())
+                        .album(track.getAlbum().getName())
+                        .build());
+            }
 
             return new Gson().toJson(songs);
         } catch (Exception e) {
@@ -88,19 +101,19 @@ public class OpenAiController {
     }
 
     @NotNull
-    private Track[] getTrackIdsFromJson(String jsonResponse) {
+    private String[] getTrackIdsFromJson(String jsonResponse) {
         Gson gson = new Gson();
         JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
-        List<Track> responseList = new ArrayList<>();
+        List<String> trackIds = new ArrayList<>();
 
         for (JsonElement element : jsonArray) {
             JsonObject jsonObject = element.getAsJsonObject();
             Track track = searchTrack(jsonObject.get("title").getAsString() + " " + jsonObject.get("artist").getAsString());
             if (track != null) {
-                responseList.add(track);
+                trackIds.add(track.getId());
             }
         }
-        return responseList.toArray(new Track[0]);
+        return trackIds.toArray(new String[0]);
     }
 }
 
