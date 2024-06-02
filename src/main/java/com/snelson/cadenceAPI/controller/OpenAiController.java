@@ -26,7 +26,7 @@ public class OpenAiController {
     @Value("${OPENAI_API_KEY}")
     private String OPENAI_API_KEY;
 
-    private final String PROMPT2 = "Create an array of %s unique! songs, queried from the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track IDs in a JSON array format, with no leading or trailing characters!.";
+    private final String PROMPT2 = "Create an array of %s unique! songs, queried from the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track URIs in a JSON array format, with no leading or trailing characters!.";
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public String getOpenAiResponseFromForm(@RequestBody MultiValueMap<String, String> formBody) {
@@ -65,7 +65,7 @@ public class OpenAiController {
                     .get(0)
                     .getMessage()
                     .getContent();
-
+            
             String[] trackUris = getTrackIdsFromJson(jsonResponse);
             List<Track> tracks = getSpotifySongs(trackUris);
 
@@ -92,7 +92,7 @@ public class OpenAiController {
 
     @NotNull
     private List<ChatMessage> getChatMessages(String length, String input) {
-        String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"id\", \"title\", \"artist\", \"album\", and \"duration\" in your response. An example response is: [{\"id\": 1,\"title\": \"Hey Jude\", \"artist\": \"The Beatles\",\"album\": \"The Beatles (White Album)\",\"duration\": \"4:56\"}].";
+        String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"title\" and \"artist\" in your response. An example response is: [{\"title\": \"Hey Jude\", \"artist\": \"The Beatles\"}].";
         String message = String.format(PROMPT, length, input);
         List<ChatMessage> messages = new ArrayList<>();
         ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), message);
