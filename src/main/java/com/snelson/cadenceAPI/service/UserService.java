@@ -2,6 +2,8 @@ package com.snelson.cadenceAPI.service;
 
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -84,6 +86,19 @@ public class UserService {
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
             return null;
+        }
+    }
+
+    public void logout(HttpSession session) {
+        try {
+            User currentUser = (User) session.getAttribute("user");
+            if (currentUser != null) {
+                session.invalidate();
+                currentUser.setEnabled(false);
+                userRepository.save(currentUser);
+            }
+        } catch (Exception e) {
+            System.out.println("Error logging out user: " + e.getMessage());
         }
     }
 }

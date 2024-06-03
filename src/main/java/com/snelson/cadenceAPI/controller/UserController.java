@@ -27,6 +27,18 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @GetMapping("/logout")
+    public ResponseEntity<String> logoutUser(HttpSession session) {
+        try {
+            userService.logout(session);
+
+            return new ResponseEntity<String>(HttpStatus.OK);
+        } catch (Exception e) {
+            System.out.println("Error logging out user: " + e.getMessage());
+            return new ResponseEntity<String>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @PostMapping("/signup")
     public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
         try {
@@ -56,7 +68,7 @@ public class UserController {
                 return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
             }
 
-            return new ResponseEntity<String>(HttpStatus.OK);
+            return new ResponseEntity<String>(new Gson().toJson(loggedInUser), HttpStatus.OK);
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
             return new ResponseEntity<String>(HttpStatus.BAD_REQUEST);

@@ -38,7 +38,11 @@ public class DefaultSecurityConfig {
                         .permitAll()
                         .defaultSuccessUrl("/", true))
                 .logout(logout -> logout
+                        .logoutUrl("/api/users/logout")
                         .logoutSuccessUrl("/")
+                        .clearAuthentication(true)
+                        .invalidateHttpSession(true)
+                        .deleteCookies("access_token", "refresh_token")
                         .permitAll())
                 .build();
     }
