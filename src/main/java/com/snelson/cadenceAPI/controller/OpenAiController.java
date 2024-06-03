@@ -65,7 +65,7 @@ public class OpenAiController {
                     .get(0)
                     .getMessage()
                     .getContent();
-            
+
             String[] trackUris = getTrackIdsFromJson(jsonResponse);
             List<Track> tracks = getSpotifySongs(trackUris);
 

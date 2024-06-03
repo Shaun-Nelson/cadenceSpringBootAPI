@@ -91,9 +91,6 @@ public class SpotifyApiController {
             User user = getCurrentUser();
             Playlist newPlaylist = createPlaylist(user.getId(), playlist.getName(), playlist.getDescription());
 
-            System.out.println("Playlist ID: " + newPlaylist.getId());
-            System.out.println("Tracks to add: " + Arrays.toString(getTrackIds(playlist.getSongs())));
-
             addSongsToPlaylist(newPlaylist.getId(), getTrackIds(playlist.getSongs()));
 
             return new ResponseEntity<>(new Gson().toJson(newPlaylist), HttpStatus.OK);
@@ -139,12 +136,10 @@ public class SpotifyApiController {
     }
 
     private static void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null) {
-            if (spotifyApi.getRefreshToken() != null) {
-                refreshSync();
-            } else {
-                clientCredentials_Sync();
-            }
+        if (spotifyApi.getAccessToken() == null && spotifyApi.getRefreshToken() == null) {
+            clientCredentials_Sync();
+        } else if (spotifyApi.getAccessToken() == null) {
+            refreshSync();
         }
     }
 
@@ -174,7 +169,6 @@ public class SpotifyApiController {
 
     public static Track searchTrack(String query) {
         checkSpotifyCredentials();
-
         try {
             return spotifyApi.searchItem(query, "track").build().execute().getTracks().getItems()[0];
         } catch (IOException | SpotifyWebApiException | ParseException e) {
