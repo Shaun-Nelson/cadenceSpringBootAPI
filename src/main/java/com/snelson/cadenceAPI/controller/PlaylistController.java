@@ -1,7 +1,9 @@
 package com.snelson.cadenceAPI.controller;
 
+import com.google.gson.Gson;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.service.PlaylistService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,14 +21,14 @@ public class PlaylistController {
     @Autowired
     private PlaylistService playlistService;
 
-    @GetMapping("/user/{username}")
-    public ResponseEntity<List<Playlist>> getPlaylists(@PathVariable("username") String username){
+    @GetMapping
+    public ResponseEntity<String> getAllPlaylists(HttpSession session) {
         try {
-            List<Playlist> playlists = playlistService.getPlaylists(username);
+            List<Playlist> playlists = playlistService.getAllPlaylists(session);
             if (playlists.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(new Gson().toJson(playlists), HttpStatus.NO_CONTENT);
             }
-            return ResponseEntity.ok(playlists);
+            return ResponseEntity.ok(new Gson().toJson(playlists));
         } catch (Exception e) {
             System.out.println("Error getting playlists: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -48,14 +50,15 @@ public class PlaylistController {
     }
 
     @PostMapping
-    public ResponseEntity<Playlist> createPlaylist(@Valid @RequestBody String playlistJson) {
+    public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlistJson, HttpSession session) {
         try {
             Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
             if (newPlaylist == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            playlistService.createPlaylist(newPlaylist);
-            return new ResponseEntity<>(newPlaylist, HttpStatus.CREATED);
+            playlistService.createPlaylist(newPlaylist, session);
+
+            return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

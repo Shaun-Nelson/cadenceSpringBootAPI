@@ -2,8 +2,8 @@ package com.snelson.cadenceAPI.service;
 
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -67,7 +67,23 @@ public class UserService {
         }
     }
 
-    public User login(User user) {
-        return userRepository.findByUsername(user.getUsername());
+    public User login(User user, HttpSession session) {
+        try {
+            User existingUser = userRepository.findByUsername(user.getUsername());
+            if (existingUser == null) {
+                throw new Exception("User not found");
+            }
+            if (!existingUser.getPassword().equals(user.getPassword())) {
+                throw new Exception("Incorrect password");
+            }
+            session.setAttribute("user", existingUser);
+            existingUser.setEnabled(true);
+            userRepository.save(existingUser);
+
+            return existingUser;
+        } catch (Exception e) {
+            System.out.println("Error logging in user: " + e.getMessage());
+            return null;
+        }
     }
 }

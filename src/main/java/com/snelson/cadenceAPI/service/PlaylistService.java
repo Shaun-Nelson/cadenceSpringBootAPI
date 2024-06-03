@@ -2,15 +2,14 @@ package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
 import com.snelson.cadenceAPI.model.Playlist;
-import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import se.michaelthelin.spotify.SpotifyApi;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -22,19 +21,19 @@ public class PlaylistService {
     @Autowired
     private UserRepository userRepository;
 
-    public List<Playlist> getPlaylists(String username) {
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
-            return new ArrayList<>();
-        }
-        return playlistRepository.findAllByUser(user);
+    public List<Playlist> getAllPlaylists(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+
+        return playlistRepository.findByUser(user);
     }
 
     public Playlist getPlaylistById(String id) {
         return playlistRepository.findById(id).orElse(null);
     }
 
-    public void createPlaylist(Playlist playlist) {
+    public void createPlaylist(Playlist playlist, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        playlist.setUser(user);
         playlistRepository.save(playlist);
     }
 
@@ -63,5 +62,9 @@ public class PlaylistService {
             System.out.println("Error converting JSON to Playlist: " + e.getMessage());
             return null;
         }
+    }
+
+    public Playlist getPlaylistByName(String name) {
+        return playlistRepository.findByName(name);
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Document
@@ -19,10 +20,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class User {
+public class User implements Serializable {
 
-//    @Autowired
-//    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Id
     private String id;
@@ -45,20 +46,24 @@ public class User {
 
     private String email;
 
+    private String role;
+
+    private String principalName;
+
+    private boolean enabled;
+
     @DBRef
     private List<Playlist> playlists;
 
-//    @PrePersist
-//    @PreUpdate
-//    public void savePassword() {
-//        this.password = passwordEncoder.encode(this.password);
-//    }
-//
-//    public boolean isCorrectPassword(String password) {
-//        return passwordEncoder.matches(password, this.password);
-//    }
+    @PrePersist
+    @PreUpdate
+    public void savePassword() {
+        if (!isCorrectPassword(this.password))  {
+            this.password = passwordEncoder.encode(this.password);
+        }
+    }
 
-    public boolean exists() {
-        return this.id != null;
+    public boolean isCorrectPassword(String password) {
+        return passwordEncoder.matches(password, this.password);
     }
 }

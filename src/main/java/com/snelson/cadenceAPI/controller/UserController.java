@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -46,14 +48,15 @@ public class UserController {
     }
 
     @PostMapping(value = "/login", produces = "application/json")
-    public ResponseEntity<String> loginUser(@Valid @RequestBody User user) {
+    public ResponseEntity<String> loginUser(@Valid @RequestBody User user, HttpSession session) {
         try {
-            userService.login(user);
+            User loggedInUser = userService.login(user, session);
 
-            Gson gson = new Gson();
-            String result = gson.toJson(user);
+            if (loggedInUser == null) {
+                return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
+            }
 
-            return ResponseEntity.ok(result);
+            return new ResponseEntity<String>(HttpStatus.OK);
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
             return new ResponseEntity<String>(HttpStatus.BAD_REQUEST);

@@ -136,10 +136,12 @@ public class SpotifyApiController {
     }
 
     private static void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null && spotifyApi.getRefreshToken() == null) {
-            clientCredentials_Sync();
-        } else if (spotifyApi.getAccessToken() == null) {
-            refreshSync();
+        if (spotifyApi.getAccessToken() == null) {
+            if (spotifyApi.getRefreshToken() != null) {
+                refreshSync();
+            } else {
+                clientCredentials_Sync();
+            }
         }
     }
 
@@ -168,8 +170,8 @@ public class SpotifyApiController {
     }
 
     public static Track searchTrack(String query) {
-        checkSpotifyCredentials();
         try {
+            checkSpotifyCredentials();
             return spotifyApi.searchItem(query, "track").build().execute().getTracks().getItems()[0];
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
