@@ -30,6 +30,8 @@ public class MongoAuthUserDetailService implements UserDetailsService {
                 .map(role -> new SimpleGrantedAuthority(role.getName().name()))
                 .collect(Collectors.toSet());
 
+        System.out.println("USER AUTHORITIES: " + authorities);
+
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorities);
     }
 }

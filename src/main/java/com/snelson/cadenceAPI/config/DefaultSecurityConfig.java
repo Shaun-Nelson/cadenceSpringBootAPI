@@ -53,8 +53,8 @@ public class DefaultSecurityConfig {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/error", "/api/openai", "/api/callback", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
-                        .requestMatchers("/api/playlists", "/api/auth/token", "/api/login/spotify").hasAuthority("SCOPE_ROLE_USER")
+                        .requestMatchers("/*", "/assets/**", "/error", "/api/openai", "/api/callback", "/api/auth/token", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
+                        .requestMatchers("/api/playlists", "/api/login/spotify").hasAuthority("SCOPE_ROLE_USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
