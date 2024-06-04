@@ -68,25 +68,12 @@ public class OpenAiController {
 
             String[] trackUris = getTrackIdsFromJson(jsonResponse);
             List<Track> tracks = getSpotifySongs(trackUris);
-
-            List<Song> songs = new ArrayList<>();
-            for (Track track : tracks) {
-                songs.add(Song.builder()
-                        .spotifyId(track.getUri())
-                        .title(track.getName())
-                        .artist(track.getArtists()[0].getName())
-                        .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
-                        .previewUrl(track.getPreviewUrl())
-                        .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
-                        .imageUrl(track.getAlbum().getImages()[0].getUrl())
-                        .album(track.getAlbum().getName())
-                        .build());
-            }
+            List<Song> songs = getSongsFromTracks(tracks);
 
             return new Gson().toJson(songs);
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
-            return "Error: " + e.getMessage();
+            return new Gson().toJson("Error: " + e.getMessage());
         }
     }
 
@@ -115,5 +102,22 @@ public class OpenAiController {
             }
         }
         return trackIds.toArray(new String[0]);
+    }
+
+    private List<Song> getSongsFromTracks(List<Track> tracks) {
+        List<Song> songs = new ArrayList<>();
+        for (Track track : tracks) {
+            songs.add(Song.builder()
+                    .spotifyId(track.getUri())
+                    .title(track.getName())
+                    .artist(track.getArtists()[0].getName())
+                    .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
+                    .previewUrl(track.getPreviewUrl())
+                    .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
+                    .imageUrl(track.getAlbum().getImages()[0].getUrl())
+                    .album(track.getAlbum().getName())
+                    .build());
+        }
+        return songs;
     }
 }

@@ -1,15 +1,34 @@
 package com.snelson.cadenceAPI.config;
 
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.snelson.cadenceAPI.service.MongoAuthUserDetailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -17,34 +36,49 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 public class DefaultSecurityConfig {
 
+    @Value("${jwt.key}")
+    private String jwtKey;
+
+    @Autowired
+    private MongoAuthUserDetailService userDetailService;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.authorizeHttpRequests(request -> request
-                        .requestMatchers("/",
-                                "/login",
-                                "/error",
-                                "/api/openai",
-                                "/api/users/signup",
-                                "/api/users/login",
-                                "/api/users/logout"
-                        ).permitAll()
-                        .anyRequest().authenticated())
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .oauth2Login(withDefaults())
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .usernameParameter("username")
-                        .passwordParameter("password")
-                        .permitAll()
-                        .defaultSuccessUrl("/", true))
-                .logout(logout -> logout
-                        .logoutUrl("/api/users/logout")
-                        .logoutSuccessUrl("/")
-                        .clearAuthentication(true)
-                        .invalidateHttpSession(true)
-                        .deleteCookies("access_token", "refresh_token")
-                        .permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/error", "/api/openai", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
+                        .requestMatchers("/api/playlists", "/api/callback", "/api/auth/token", "/api/login/spotify").hasRole("USER")
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .httpBasic(withDefaults())
+                .formLogin(withDefaults())
                 .build();
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder() {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtKey.getBytes()));
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        byte[] bytes = jwtKey.getBytes();
+        SecretKeySpec originalKey = new SecretKeySpec(bytes, 0, bytes.length, "RSA");
+        return NimbusJwtDecoder.withSecretKey(originalKey).macAlgorithm(MacAlgorithm.HS256).build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
+        authenticationProvider.setUserDetailsService(userDetailsService);
+        authenticationProvider.setPasswordEncoder(passwordEncoder);
+
+        return new ProviderManager(authenticationProvider);
     }
 
     @Bean

@@ -163,7 +163,6 @@ public class SpotifyApiController {
                 tracks.add(spotifyApi.getTrack(trackId).build().execute());
             } catch (IOException | SpotifyWebApiException | ParseException e) {
                 System.out.println("Error: " + e.getMessage());
-                e.printStackTrace();
             }
         }
         return tracks;
@@ -175,7 +174,6 @@ public class SpotifyApiController {
             return spotifyApi.searchItem(query, "track").build().execute().getTracks().getItems()[0];
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

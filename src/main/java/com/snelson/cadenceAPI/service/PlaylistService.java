@@ -33,6 +33,9 @@ public class PlaylistService {
 
     public void createPlaylist(Playlist playlist, HttpSession session) {
         User user = (User) session.getAttribute("user");
+        if (user == null || !user.isEnabled()) {
+            return;
+        }
         playlist.setUser(user);
         playlistRepository.save(playlist);
     }

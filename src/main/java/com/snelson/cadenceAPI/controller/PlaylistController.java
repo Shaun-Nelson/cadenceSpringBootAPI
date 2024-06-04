@@ -2,6 +2,7 @@ package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
 import com.snelson.cadenceAPI.model.Playlist;
+import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.service.PlaylistService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -52,12 +53,17 @@ public class PlaylistController {
     @PostMapping
     public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlistJson, HttpSession session) {
         try {
-            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
-            if (newPlaylist == null) {
+            User currentUser = (User) session.getAttribute("user");
+                if (currentUser == null || !currentUser.isEnabled() || playlistJson == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            playlistService.createPlaylist(newPlaylist, session);
 
+            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
+            if (newPlaylist == null){
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+
+            playlistService.createPlaylist(newPlaylist, session);
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());

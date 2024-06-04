@@ -1,17 +1,23 @@
 package com.snelson.cadenceAPI.service;
 
+import com.snelson.cadenceAPI.model.ERole;
+import com.snelson.cadenceAPI.model.Role;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService {
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private UserRepository userRepository;
@@ -36,6 +42,9 @@ public class UserService {
 
     public User createUser(User user) {
         try {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            Role role = Role.builder().name(ERole.ROLE_USER).id(new ObjectId()).build();
+            user.setRoles(Set.of(role));
             return userRepository.save(user);
         } catch (Exception e) {
             System.out.println("Error creating user: " + e.getMessage());
@@ -69,36 +78,40 @@ public class UserService {
         }
     }
 
-    public User login(User user, HttpSession session) {
+    public User login(User user) {
         try {
             User existingUser = userRepository.findByUsername(user.getUsername());
             if (existingUser == null) {
-                throw new Exception("User not found");
+                return null;
             }
-            if (!existingUser.getPassword().equals(user.getPassword())) {
-                throw new Exception("Incorrect password");
+            if (passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
+                existingUser.setEnabled(true);
+                Role role = Role.builder().name(ERole.ROLE_USER).id(new ObjectId()).build();
+                existingUser.setRoles(Set.of(role));
+                userRepository.save(existingUser);
+                return existingUser;
+            } else {
+                return null;
             }
-            session.setAttribute("user", existingUser);
-            existingUser.setEnabled(true);
-            userRepository.save(existingUser);
-
-            return existingUser;
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
-            return null;
         }
+        return null;
     }
 
-    public void logout(HttpSession session) {
+    public User logout(Authentication authentication) {
         try {
-            User currentUser = (User) session.getAttribute("user");
-            if (currentUser != null) {
-                session.invalidate();
-                currentUser.setEnabled(false);
-                userRepository.save(currentUser);
+            if (authentication != null) {
+                User user = userRepository.findByUsername(authentication.getName());
+                user.setEnabled(false);
+                userRepository.save(user);
+                authentication.setAuthenticated(false);
+
+                return user;
             }
         } catch (Exception e) {
             System.out.println("Error logging out user: " + e.getMessage());
         }
+        return null;
     }
 }
