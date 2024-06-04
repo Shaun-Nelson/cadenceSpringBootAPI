@@ -3,18 +3,25 @@ package com.snelson.cadenceAPI.service;
 import com.snelson.cadenceAPI.model.ERole;
 import com.snelson.cadenceAPI.model.Role;
 import com.snelson.cadenceAPI.model.User;
+import com.snelson.cadenceAPI.repository.RoleRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+
+    @Autowired
+    private MongoAuthUserDetailService userDetailsService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -22,11 +29,23 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
+
     public List<User> getUsers() {
         try {
             return userRepository.findAll();
         } catch (Exception e) {
             System.out.println("Error getting users: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public User getUserByUsername(String username) {
+        try {
+            return userRepository.findByUsername(username);
+        } catch (Exception e) {
+            System.out.println("Error getting user: " + e.getMessage());
             return null;
         }
     }
@@ -41,15 +60,14 @@ public class UserService {
     }
 
     public User createUser(User user) {
-        try {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-            Role role = Role.builder().name(ERole.ROLE_USER).id(new ObjectId()).build();
-            user.setRoles(Set.of(role));
-            return userRepository.save(user);
-        } catch (Exception e) {
-            System.out.println("Error creating user: " + e.getMessage());
-            return null;
+        if (userRepository.findByUsername(user.getUsername()) != null) {
+            throw new RuntimeException("User already exists");
         }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(false);
+
+        return userRepository.save(user);
     }
 
     public User updateUser(String id, User user) {
@@ -78,25 +96,24 @@ public class UserService {
         }
     }
 
-    public User login(User user) {
+    public void login(User user) {
         try {
-            User existingUser = userRepository.findByUsername(user.getUsername());
-            if (existingUser == null) {
-                return null;
-            }
-            if (passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
-                existingUser.setEnabled(true);
-                Role role = Role.builder().name(ERole.ROLE_USER).id(new ObjectId()).build();
-                existingUser.setRoles(Set.of(role));
-                userRepository.save(existingUser);
-                return existingUser;
+            user.setEnabled(true);
+            Set<Role> roles = new HashSet<>();
+            Optional<Role> userRole = roleRepository.findByName(ERole.ROLE_USER);
+            if (userRole.isPresent()) {
+                roles.add(userRole.get());
             } else {
-                return null;
+                Role newUserRole = Role.builder().id(new ObjectId()).name(ERole.ROLE_USER).build();
+                roleRepository.save(newUserRole);
+                roles.add(newUserRole);
             }
+
+            user.setRoles(roles);
+            userRepository.save(user);
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());
         }
-        return null;
     }
 
     public User logout(Authentication authentication) {

@@ -8,7 +8,9 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
-@Document
+import java.util.Collection;
+
+@Document(collection = "roles")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

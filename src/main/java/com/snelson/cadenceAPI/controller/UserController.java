@@ -18,7 +18,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,6 +41,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
+        userService.login(userService.getUserByUsername(loginRequest.getUsername()));
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(loginRequest.getUsername(), loginRequest.getPassword());
         Authentication authenticationResponse = this.authenticationManager.authenticate(authenticationRequest);
 

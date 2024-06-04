@@ -9,10 +9,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class MongoAuthUserDetailService implements UserDetailsService {
@@ -21,25 +20,16 @@ public class MongoAuthUserDetailService implements UserDetailsService {
     private UserRepository userRepository;
 
     @Override
-    @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username);
-
         if (user == null) {
-            throw new UsernameNotFoundException("User not found with username: " + username);
+            throw new UsernameNotFoundException("User not found");
         }
 
-        Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
+        Set<GrantedAuthority> authorities = user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
+                .collect(Collectors.toSet());
 
-        user.getRoles().forEach(role -> {
-            if (role != null && role.getName() != null) {
-                grantedAuthorities.add(new SimpleGrantedAuthority(role.getName().name()));
-            } else {
-                grantedAuthorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-            }
-        });
-
-
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), grantedAuthorities);
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorities);
     }
 }

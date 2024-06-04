@@ -58,7 +58,7 @@ public class User implements Serializable {
     private String email;
 
     @DBRef
-    private Set<Role> roles = new HashSet<>();
+    private Set<Role> roles;
 
     private boolean enabled;
 
