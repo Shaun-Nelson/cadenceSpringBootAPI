@@ -1,19 +1,26 @@
 package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
+import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
+import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
+import java.security.SecureRandom;
 import java.util.List;
 
 @Service
 public class PlaylistService {
+
+    private static final Gson gson = new GsonBuilder()
+            .setExclusionStrategies(new CustomGsonExclusionStrategy())
+            .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
+            .create();
 
     @Autowired
     private PlaylistRepository playlistRepository;
@@ -21,9 +28,7 @@ public class PlaylistService {
     @Autowired
     private UserRepository userRepository;
 
-    public List<Playlist> getAllPlaylists(HttpSession session) {
-        User user = (User) session.getAttribute("user");
-
+    public List<Playlist> getAllPlaylists(User user) {
         return playlistRepository.findByUser(user);
     }
 
@@ -31,11 +36,7 @@ public class PlaylistService {
         return playlistRepository.findById(id).orElse(null);
     }
 
-    public void createPlaylist(Playlist playlist, HttpSession session) {
-        User user = (User) session.getAttribute("user");
-        if (user == null || !user.isEnabled()) {
-            return;
-        }
+    public void createPlaylist(Playlist playlist, User user) {
         playlist.setUser(user);
         playlistRepository.save(playlist);
     }
@@ -58,8 +59,6 @@ public class PlaylistService {
 
     public Playlist convertJsonToPlaylist(String json) {
         try {
-            Gson gson = new Gson();
-
             return gson.fromJson(json, Playlist.class);
         } catch (Exception e) {
             System.out.println("Error converting JSON to Playlist: " + e.getMessage());

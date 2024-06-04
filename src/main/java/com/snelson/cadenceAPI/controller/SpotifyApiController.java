@@ -1,7 +1,10 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.snelson.cadenceAPI.model.Song;
+import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
+import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,8 +25,8 @@ import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfi
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -37,6 +40,10 @@ public class SpotifyApiController {
     private static final String ENV = System.getenv("ENV");
     private static final int EXPIRES_IN = 60 * 60 * 24 * 30;
     private final String STATE = generateRandomString(16);
+    private static final Gson gson = new GsonBuilder()
+            .setExclusionStrategies(new CustomGsonExclusionStrategy())
+            .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
+            .create();
 
     private static final SpotifyApi spotifyApi = new SpotifyApi.Builder()
             .setClientId(CLIENT_ID)
@@ -63,8 +70,7 @@ public class SpotifyApiController {
     public RedirectView authorizationCodeSync(@RequestParam String code, @RequestParam String state, HttpServletResponse response) {
         try {
             if (!state.equals(this.STATE)) {
-                System.out.println("State mismatch");
-                return new RedirectView(CLIENT_URL);
+                throw new Exception("State mismatch");
             }
 
             AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
@@ -78,25 +84,25 @@ public class SpotifyApiController {
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
             return new RedirectView(CLIENT_URL);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     @PostMapping("/playlists/spotify")
     public ResponseEntity<String> createSpotifyPlaylist(@Valid @RequestBody String playlistJson) {
         try {
-            com.snelson.cadenceAPI.model.Playlist playlist = new Gson().fromJson(playlistJson, com.snelson.cadenceAPI.model.Playlist.class);
+            com.snelson.cadenceAPI.model.Playlist playlist = gson.fromJson(playlistJson, com.snelson.cadenceAPI.model.Playlist.class);
 
             checkSpotifyCredentials();
 
             User user = getCurrentUser();
             Playlist newPlaylist = createPlaylist(user.getId(), playlist.getName(), playlist.getDescription());
-
             addSongsToPlaylist(newPlaylist.getId(), getTrackIds(playlist.getSongs()));
 
-            return new ResponseEntity<>(new Gson().toJson(newPlaylist), HttpStatus.OK);
+            return new ResponseEntity<>(gson.toJson(newPlaylist), HttpStatus.OK);
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -107,7 +113,6 @@ public class SpotifyApiController {
             spotifyApi.setAccessToken(authorizationCodeRefreshRequest.execute().getAccessToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -117,7 +122,6 @@ public class SpotifyApiController {
             spotifyApi.setAccessToken(clientCredentialsRequest.execute().getAccessToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 

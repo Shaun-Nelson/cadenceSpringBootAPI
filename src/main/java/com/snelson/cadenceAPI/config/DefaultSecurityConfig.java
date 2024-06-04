@@ -54,7 +54,7 @@ public class DefaultSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/*", "/assets/**", "/error", "/api/openai", "/api/callback", "/api/auth/token", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
-                        .requestMatchers("/api/playlists", "/api/login/spotify").hasAuthority("SCOPE_ROLE_USER")
+                        .requestMatchers("/api/playlists", "/api/login/spotify", "/api/playlists/spotify").hasAuthority("SCOPE_ROLE_USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -97,6 +97,7 @@ public class DefaultSecurityConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

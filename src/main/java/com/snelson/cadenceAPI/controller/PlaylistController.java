@@ -1,17 +1,22 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.model.User;
+import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.PlaylistService;
-import jakarta.servlet.http.HttpSession;
+import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
+import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.SecureRandom;
 import java.util.List;
 
 @RestController
@@ -19,17 +24,26 @@ import java.util.List;
 @Validated
 public class PlaylistController {
 
+    private static final Gson gson = new GsonBuilder()
+            .setExclusionStrategies(new CustomGsonExclusionStrategy())
+            .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
+            .create();
+
+    @Autowired
+    private UserRepository userRepository;
+
     @Autowired
     private PlaylistService playlistService;
 
     @GetMapping
-    public ResponseEntity<String> getAllPlaylists(HttpSession session) {
+    public ResponseEntity<String> getAllPlaylists(Authentication authentication) {
         try {
-            List<Playlist> playlists = playlistService.getAllPlaylists(session);
+            User user = userRepository.findByUsername(authentication.getName());
+            List<Playlist> playlists = playlistService.getAllPlaylists(user);
             if (playlists.isEmpty()) {
-                return new ResponseEntity<>(new Gson().toJson(playlists), HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(gson.toJson(playlists), HttpStatus.NO_CONTENT);
             }
-            return ResponseEntity.ok(new Gson().toJson(playlists));
+            return ResponseEntity.ok(gson.toJson(playlists));
         } catch (Exception e) {
             System.out.println("Error getting playlists: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -51,19 +65,11 @@ public class PlaylistController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlistJson, HttpSession session) {
+    public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlistJson, Authentication authentication) {
         try {
-            User currentUser = (User) session.getAttribute("user");
-                if (currentUser == null || !currentUser.isEnabled() || playlistJson == null) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-
+            User currentUser = userRepository.findByUsername(authentication.getName());
             Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
-            if (newPlaylist == null){
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-
-            playlistService.createPlaylist(newPlaylist, session);
+            playlistService.createPlaylist(newPlaylist, currentUser);
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (Exception e) {
             System.out.println("Error creating playlist: " + e.getMessage());
@@ -86,13 +92,13 @@ public class PlaylistController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePlaylist(@PathVariable("id") String id) {
+    public ResponseEntity<String> deletePlaylist(@PathVariable("id") String id) {
         try {
             playlistService.deletePlaylist(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(gson.toJson(id), HttpStatus.OK);
         } catch (Exception e) {
             System.out.println("Error deleting playlist: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(gson.toJson(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

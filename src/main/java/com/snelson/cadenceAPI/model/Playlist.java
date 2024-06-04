@@ -1,14 +1,13 @@
 package com.snelson.cadenceAPI.model;
 
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.MongoId;
 
 import java.util.List;
 
@@ -19,8 +18,8 @@ import java.util.List;
 @Builder
 public class Playlist {
 
-        @MongoId
-        private ObjectId id;
+        @Id
+        private String id;
 
         @CreatedDate
         private String createdDate;
