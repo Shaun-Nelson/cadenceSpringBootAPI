@@ -25,12 +25,13 @@ public class MongoAuthUserDetailService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found");
         }
+        if (user.getRoles() == null) {
+            throw new UsernameNotFoundException("User has no roles");
+        }
 
         Set<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName().name()))
                 .collect(Collectors.toSet());
-
-        System.out.println("USER AUTHORITIES: " + authorities);
 
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorities);
     }

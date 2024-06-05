@@ -11,10 +11,4 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class CadenceApiApplicationTests {
 
-	@Autowired
-	UserRepository userRepository;
-
-	@Test
-	void contextLoads() {
-	}
 }

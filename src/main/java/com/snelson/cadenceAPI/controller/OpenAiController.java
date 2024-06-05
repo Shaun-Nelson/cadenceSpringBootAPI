@@ -6,18 +6,20 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
+import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 
-import static com.snelson.cadenceAPI.controller.SpotifyApiController.getSpotifySongs;
-import static com.snelson.cadenceAPI.controller.SpotifyApiController.searchTrack;
+import static com.snelson.cadenceAPI.controller.SpotifyApiController.*;
 
 @RestController
 @RequestMapping("/api/openai")

@@ -41,14 +41,13 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
-        this.doAuthenticate(loginRequest.getUsername(), loginRequest.getPassword());
-        userService.login(userService.getUserByUsername(loginRequest.getUsername()));
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(loginRequest.getUsername(), loginRequest.getPassword());
         Authentication authenticationResponse = this.authenticationManager.authenticate(authenticationRequest);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
         String token = tokenService.generateToken(authenticationResponse);
         LoginResponse response = new LoginResponse(token, userDetails.getUsername());
+        userService.login(userService.getUserByUsername(loginRequest.getUsername()));
 
         return ResponseEntity.ok(new Gson().toJson(response));
     }
