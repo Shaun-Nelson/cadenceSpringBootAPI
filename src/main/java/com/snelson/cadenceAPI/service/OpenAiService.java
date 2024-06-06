@@ -122,6 +122,10 @@ public class OpenAiService {
             JsonObject jsonObject = element.getAsJsonObject();
             spotifyApiService.checkSpotifyCredentials();
             Track track = spotifyApiService.searchTrack(jsonObject.get("title").getAsString());
+
+            if (track == null) {
+                throw new RuntimeException("Track not found");
+            }
             trackIds.add(track.getId());
         }
         return trackIds.toArray(new String[0]);

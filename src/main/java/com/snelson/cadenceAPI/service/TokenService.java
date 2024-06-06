@@ -39,7 +39,7 @@ public class TokenService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plus(10, ChronoUnit.MINUTES))
+                .expiresAt(now.plus(30, ChronoUnit.DAYS))
                 .subject(authentication.getName())
                 .claim("scope", scope)
                 .build();
@@ -50,7 +50,7 @@ public class TokenService {
     public RefreshToken generateRefreshToken(String username) {
         RefreshToken refreshToken = RefreshToken.builder()
                 .refreshToken(UUID.randomUUID().toString())
-                .expiryTime(Instant.now().plusMillis(1000 * 60 * 10)) // 10 minutes
+                .expiryTime(Instant.now().plusMillis(1000L * 60 * 60 * 24 * 30)) // 30 days
                 .user(userRepository.findByUsername(username))
                 .build();
         return refreshTokenRepository.save(refreshToken);
