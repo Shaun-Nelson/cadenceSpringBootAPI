@@ -63,7 +63,7 @@ public class UserService {
         if (userRepository.findByUsername(user.getUsername()) != null) {
             throw new RuntimeException("User already exists");
         }
-        if (user.getRoles() == null) {
+        if (user.getRoles().isEmpty()) {
             Set<Role> roles = new HashSet<>();
             Role userRole = roleRepository.findByName(ERole.ROLE_USER)
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));

@@ -59,8 +59,9 @@ public class UserController {
         Authentication authenticationResponse = authenticationManager.authenticate(authenticationRequest);
 
         if (authenticationResponse.isAuthenticated()) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
             userService.login(userService.getUserByUsername(loginRequest.getUsername()));
+            UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+
             String accessToken = tokenService.generateAccessToken(authenticationResponse);
             RefreshToken refreshToken = tokenService.generateRefreshToken(userDetails.getUsername());
             LoginResponse response = LoginResponse.builder()
