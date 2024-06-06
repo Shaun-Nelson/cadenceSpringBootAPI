@@ -1,13 +1,17 @@
-package com.snelson.cadenceAPI.model;
+package com.snelson.cadenceAPI.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginRequest {
+@Builder
+public class LoginResponse {
+
+    private String accessToken;
     private String username;
-    private String password;
+    private String refreshToken;
 }

@@ -15,8 +15,6 @@ public class OpenAiController {
     @Autowired
     private OpenAiService openAiService;
 
-//    private final String PROMPT2 = "Create an array of %s unique! songs, found in the Spotify library, based off the following search prompt: \"%s\". Please provide a list of Spotify track URIs in a JSON array format, with no leading or trailing characters!.";
-
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public String getOpenAiResponseFromForm(@RequestBody MultiValueMap<String, String> formBody) {
         String length = formBody.getFirst("length");

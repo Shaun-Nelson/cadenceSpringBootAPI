@@ -63,10 +63,11 @@ public class UserService {
         if (userRepository.findByUsername(user.getUsername()) != null) {
             throw new RuntimeException("User already exists");
         }
-
+        if (user.getRoles() == null) {
+            user.setRoles(new HashSet<>());
+        }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setEnabled(false);
-
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 
@@ -100,16 +101,11 @@ public class UserService {
         try {
             user.setEnabled(true);
             Set<Role> roles = new HashSet<>();
-            Optional<Role> userRole = roleRepository.findByName(ERole.ROLE_USER);
-            if (userRole.isPresent()) {
-                roles.add(userRole.get());
-            } else {
-                Role newUserRole = Role.builder().id(new ObjectId()).name(ERole.ROLE_USER).build();
-                roleRepository.save(newUserRole);
-                roles.add(newUserRole);
-            }
-
+            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(userRole);
             user.setRoles(roles);
+
             userRepository.save(user);
         } catch (Exception e) {
             System.out.println("Error logging in user: " + e.getMessage());

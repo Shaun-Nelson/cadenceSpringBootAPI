@@ -1,13 +1,18 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
-import com.snelson.cadenceAPI.model.LoginRequest;
-import com.snelson.cadenceAPI.model.LoginResponse;
+import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.LoginRequest;
+import com.snelson.cadenceAPI.dto.LoginResponse;
+import com.snelson.cadenceAPI.model.RefreshToken;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.MongoAuthUserDetailService;
 import com.snelson.cadenceAPI.service.TokenService;
 import com.snelson.cadenceAPI.service.UserService;
+import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
+import com.snelson.cadenceAPI.utils.InstantTypeAdapter;
+import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.SecureRandom;
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/users")
@@ -39,42 +47,52 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    private final Gson gson = new GsonBuilder()
+            .setExclusionStrategies(new CustomGsonExclusionStrategy())
+            .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+            .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
+            .create();
+
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(loginRequest.getUsername(), loginRequest.getPassword());
-        Authentication authenticationResponse = this.authenticationManager.authenticate(authenticationRequest);
+        Authentication authenticationResponse = authenticationManager.authenticate(authenticationRequest);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
-        String token = tokenService.generateToken(authenticationResponse);
-        LoginResponse response = new LoginResponse(token, userDetails.getUsername());
-        userService.login(userService.getUserByUsername(loginRequest.getUsername()));
+        if (authenticationResponse.isAuthenticated()) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+            userService.login(userService.getUserByUsername(loginRequest.getUsername()));
+            String accessToken = tokenService.generateAccessToken(authenticationResponse);
+            RefreshToken refreshToken = tokenService.generateRefreshToken(userDetails.getUsername());
+            LoginResponse response = LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken.getRefreshToken())
+                    .username(userDetails.getUsername())
+                    .build();
 
-        return ResponseEntity.ok(new Gson().toJson(response));
+            return ResponseEntity.ok(gson.toJson(response));
+        } else {
+            return ResponseEntity.badRequest().body("Login failed. Invalid request.");
+        }
     }
 
     @PostMapping("/logout")
     public ResponseEntity<String> logoutUser() {
         SecurityContextHolder.clearContext();
-        return ResponseEntity.ok(new Gson().toJson("User logged out"));
+        return ResponseEntity.ok(gson.toJson("User logged out"));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+    public ResponseEntity<String> createUser(@Valid @RequestBody User user) {
         try {
-            if (userRepository.findByUsername(user.getUsername()) != null) {
-                return new ResponseEntity<>(HttpStatus.CONFLICT);
-            }
-
             User newUser = userService.createUser(user);
-
             if (newUser == null) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                return ResponseEntity.badRequest().body("User signup failed");
             } else {
-                return new ResponseEntity<>(newUser, HttpStatus.CREATED);
+                return ResponseEntity.status(HttpStatus.CREATED).body("User signed up: " + newUser.getUsername());
             }
         } catch (Exception e) {
             System.out.println("Error creating user: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return ResponseEntity.badRequest().body("Error creating user");
         }
     }
 

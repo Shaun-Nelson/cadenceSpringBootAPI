@@ -16,6 +16,7 @@ import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -50,8 +51,8 @@ public class OpenAiService {
                     .get(0)
                     .getMessage()
                     .getContent();
-
             String[] trackUris = getTrackIdsFromJson(jsonResponse);
+            spotifyApiService.checkSpotifyCredentials();
             List<Track> tracks = spotifyApiService.getSpotifySongs(trackUris);
             List<Song> songs = getSongsFromTracks(tracks);
 
@@ -62,9 +63,47 @@ public class OpenAiService {
         }
     }
 
+    public String processRequestNew(String length, String input) {
+        List<ChatMessage> messages = getChatMessages(length, input);
+        int TIMEOUT_DURATION_IN_SECONDS = 120;
+        com.theokanning.openai.service.OpenAiService service = new com.theokanning.openai.service.OpenAiService(OPENAI_API_KEY, Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
+
+        try {
+            String MODEL = "gpt-4o";
+            double TEMPERATURE = 0;
+            int MAX_TOKENS = 3500;
+            ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
+                    .builder()
+                    .model(MODEL)
+                    .messages(messages)
+                    .temperature(TEMPERATURE)
+                    .maxTokens(MAX_TOKENS)
+                    .build();
+
+            String jsonResponse = service.createChatCompletion(chatCompletionRequest)
+                    .getChoices()
+                    .get(0)
+                    .getMessage()
+                    .getContent();
+
+            String[] trackUris = getTrackIdsFromJsonNew(jsonResponse);
+            spotifyApiService.checkSpotifyCredentials();
+            Track[] tracks = spotifyApiService.spotifyApi.getSeveralTracks(trackUris).build().execute();
+            System.out.println("Tracks: " + Arrays.toString(tracks));
+            List<Song> songs = getSongsFromTracksNew(tracks);
+
+            return new Gson().toJson(songs);
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            return new Gson().toJson("Error: " + e.getMessage());
+        }
+    }
+
     @NotNull
     private List<ChatMessage> getChatMessages(String length, String input) {
-        String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"title\" and \"artist\" in your response. An example response is: [{\"title\": \"Hey Jude\", \"artist\": \"The Beatles\"}].";
+        final String PROMPT = "You are an assistant that only responds in JSON format strictly as an array of objects, with no leading or trailing characters!. Create a list of %s unique! songs, found in the Spotify library, based off the following statement: \"%s\". Include \"title\" and \"artist\" in your response. An example response is: [{\"title\": \"Hey Jude\", \"artist\": \"The Beatles\"}].";
+        final String PROMPT2 = "You are an assistant that only responds in JSON format, with no leading or trailing characters! Create a list of %s unique! song IDs from songs found in the Spotify library, based off the following search prompt: \"%s\". An example response is: [\"01iyCAUm8EvOFqVWYJ3dVX\"].";
+
         String message = String.format(PROMPT, length, input);
         List<ChatMessage> messages = new ArrayList<>();
         ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), message);
@@ -89,6 +128,40 @@ public class OpenAiService {
     }
 
     private List<Song> getSongsFromTracks(List<Track> tracks) {
+        List<Song> songs = new ArrayList<>();
+        for (Track track : tracks) {
+            songs.add(Song.builder()
+                    .spotifyId(track.getUri())
+                    .title(track.getName())
+                    .artist(track.getArtists()[0].getName())
+                    .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
+                    .previewUrl(track.getPreviewUrl())
+                    .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
+                    .imageUrl(track.getAlbum().getImages()[0].getUrl())
+                    .album(track.getAlbum().getName())
+                    .build());
+        }
+        return songs;
+    }
+
+    @NotNull
+    private String[] getTrackIdsFromJsonNew(String jsonResponse) {
+        Gson gson = new Gson();
+        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
+        List<String> trackIds = new ArrayList<>();
+
+        for (JsonElement element : jsonArray) {
+            if (element.getAsString().startsWith("spotify:track:")) {
+                trackIds.add(element.getAsString().substring(14));
+            } else {
+                trackIds.add(element.getAsString());
+            }
+        }
+
+        return trackIds.toArray(new String[0]);
+    }
+
+    private List<Song> getSongsFromTracksNew(Track[] tracks) {
         List<Song> songs = new ArrayList<>();
         for (Track track : tracks) {
             songs.add(Song.builder()

@@ -33,7 +33,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
-public class DefaultSecurityConfig {
+public class SecurityConfig {
 
     @Value("${security.jwt.key}")
     private String jwtKey;
@@ -47,8 +47,8 @@ public class DefaultSecurityConfig {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/*", "/assets/**", "/error", "/api/openai", "/api/callback", "/api/auth/token", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
-                        .requestMatchers("/api/playlists", "/api/login/spotify", "/api/playlists/spotify").hasAuthority("SCOPE_ROLE_USER")
+                        .requestMatchers("/*", "/assets/**", "/error", "/api/openai", "/api/callback", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
+                        .requestMatchers("/api/auth/token", "/api/auth/refresh", "/api/playlists", "/api/login/spotify", "/api/playlists/spotify").hasAuthority("SCOPE_ROLE_USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -70,9 +70,7 @@ public class DefaultSecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            MongoAuthUserDetailService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+    public AuthenticationManager authenticationManager(MongoAuthUserDetailService userDetailsService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(userDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
@@ -88,7 +86,7 @@ public class DefaultSecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:5173", "cadence.technology"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

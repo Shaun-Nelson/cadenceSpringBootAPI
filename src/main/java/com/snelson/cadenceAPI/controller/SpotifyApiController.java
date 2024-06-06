@@ -52,9 +52,6 @@ public class SpotifyApiController {
 
     @PostConstruct
     public void init() {
-        log.info("Initializing Spotify API");
-        log.info("CLIENT_URL: " + CLIENT_URL);
-
         this.STATE = spotifyApiService.generateRandomString(16);
         this.gson = new GsonBuilder()
                 .setExclusionStrategies(new CustomGsonExclusionStrategy())

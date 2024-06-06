@@ -25,9 +25,6 @@ public class MongoAuthUserDetailService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found");
         }
-        if (user.getRoles() == null) {
-            throw new UsernameNotFoundException("User has no roles");
-        }
 
         Set<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName().name()))
