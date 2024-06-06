@@ -14,9 +14,7 @@
 	<name>cadenceAPI</name>
 	<description>REST API to be used by Cadence app</description>
 	<properties>
-		<java.version>22</java.version>
-		<maven.compiler.source>22</maven.compiler.source>
-		<maven.compiler.target>22</maven.compiler.target>
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -98,8 +96,6 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<excludes>
-						<source>22</source>
-						<target>22</target>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
