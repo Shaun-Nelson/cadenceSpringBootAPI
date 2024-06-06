@@ -71,7 +71,7 @@ public class UserController {
 
             return ResponseEntity.ok(gson.toJson(response));
         } else {
-            return ResponseEntity.badRequest().body("Login failed. Invalid request.");
+            return ResponseEntity.badRequest().body(gson.toJson("Invalid Username or Password"));
         }
     }
 
@@ -86,13 +86,13 @@ public class UserController {
         try {
             User newUser = userService.createUser(user);
             if (newUser == null) {
-                return ResponseEntity.badRequest().body("User signup failed");
+                return new ResponseEntity<>(HttpStatus.CONFLICT);
             } else {
-                return ResponseEntity.status(HttpStatus.CREATED).body("User signed up: " + newUser.getUsername());
+                return new ResponseEntity<>(HttpStatus.CREATED);
             }
         } catch (Exception e) {
             System.out.println("Error creating user: " + e.getMessage());
-            return ResponseEntity.badRequest().body("Error creating user");
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
     }
 
