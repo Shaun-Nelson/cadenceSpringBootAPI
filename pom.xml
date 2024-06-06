@@ -14,7 +14,7 @@
 	<name>cadenceAPI</name>
 	<description>REST API to be used by Cadence app</description>
 	<properties>
-		<java.version>22</java.version>
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
