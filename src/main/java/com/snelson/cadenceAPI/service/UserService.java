@@ -64,7 +64,11 @@ public class UserService {
             throw new RuntimeException("User already exists");
         }
         if (user.getRoles() == null) {
-            user.setRoles(new HashSet<>());
+            Set<Role> roles = new HashSet<>();
+            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(userRole);
+            user.setRoles(roles);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setEnabled(true);
