@@ -12,6 +12,7 @@ import lombok.extern.java.Log;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CookieValue;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
@@ -111,7 +112,11 @@ public class SpotifyApiService {
                 clientCredentials_Sync();
             }
         } else {
-            refreshSync();
+            try {
+                getCurrentUser();
+            } catch (IOException | SpotifyWebApiException | ParseException e) {
+                clientCredentials_Sync();
+            }
         }
     }
 
