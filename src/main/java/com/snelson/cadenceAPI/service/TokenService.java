@@ -1,5 +1,6 @@
 package com.snelson.cadenceAPI.service;
 
+import com.snelson.cadenceAPI.model.ERole;
 import com.snelson.cadenceAPI.model.RefreshToken;
 import com.snelson.cadenceAPI.repository.RefreshTokenRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
@@ -39,9 +40,22 @@ public class TokenService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
-                .expiresAt(now.plus(30, ChronoUnit.DAYS))
+                .expiresAt(now.plus(10, ChronoUnit.MINUTES))
                 .subject(authentication.getName())
                 .claim("scope", scope)
+                .build();
+        var encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);
+        return this.encoder.encode(encoderParameters).getTokenValue();
+    }
+
+    public String generateAccessTokenByUsername(String username) {
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("self")
+                .issuedAt(now)
+                .expiresAt(now.plus(10, ChronoUnit.MINUTES))
+                .subject(username)
+                .claim("scope", ERole.ROLE_USER.name())
                 .build();
         var encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);
         return this.encoder.encode(encoderParameters).getTokenValue();

@@ -6,6 +6,7 @@ import com.snelson.cadenceAPI.dto.RefreshTokenResponse;
 import com.snelson.cadenceAPI.service.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,12 +25,12 @@ public class TokenController {
     }
 
     @PostMapping("/refresh")
-    public RefreshTokenResponse refresh(Authentication authentication, @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public RefreshTokenResponse refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
         return tokenService.findRefreshToken(refreshTokenRequest.getRefreshToken())
                 .map(tokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
-                    String accessToken = tokenService.generateAccessToken(authentication);
+                    String accessToken = tokenService.generateAccessTokenByUsername(user.getUsername());
                     return RefreshTokenResponse.builder()
                             .accessToken(accessToken)
                             .refreshToken(refreshTokenRequest.getRefreshToken())
