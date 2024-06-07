@@ -110,6 +110,8 @@ public class SpotifyApiService {
             } else {
                 clientCredentials_Sync();
             }
+        } else {
+            refreshSync();
         }
     }
 
