@@ -104,8 +104,8 @@ public class SpotifyApiService {
     }
 
     public void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null) {
-            if (spotifyApi.getRefreshToken() != null) {
+        if (spotifyApi.getAccessToken() == null || spotifyApi.getAccessToken().isEmpty()) {
+            if (spotifyApi.getRefreshToken() != null || !spotifyApi.getRefreshToken().isEmpty()) {
                 refreshSync();
             } else {
                 clientCredentials_Sync();

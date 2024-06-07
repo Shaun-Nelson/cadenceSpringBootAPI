@@ -86,10 +86,9 @@ public class OpenAiService {
                     .getMessage()
                     .getContent();
 
-            String[] trackUris = getTrackIdsFromJsonNew(jsonResponse);
             spotifyApiService.checkSpotifyCredentials();
+            String[] trackUris = getTrackIdsFromJsonNew(jsonResponse);
             Track[] tracks = spotifyApiService.spotifyApi.getSeveralTracks(trackUris).build().execute();
-            System.out.println("Tracks: " + Arrays.toString(tracks));
             List<Song> songs = getSongsFromTracksNew(tracks);
 
             return new Gson().toJson(songs);
