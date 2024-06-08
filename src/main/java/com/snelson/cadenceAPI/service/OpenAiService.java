@@ -53,7 +53,7 @@ public class OpenAiService {
 
             spotifyApiService.checkSpotifyCredentials();
             Track[] tracks = getTracksFromJson(jsonResponse);
-            List<Song> songs = getSongsFromTracksNew(tracks);
+            Song[] songs = getSongsFromTracksNew(tracks);
 
             return new Gson().toJson(songs);
         } catch (Exception e) {
@@ -157,19 +157,19 @@ public class OpenAiService {
         return trackIds.toArray(new String[0]);
     }
 
-    private List<Song> getSongsFromTracksNew(Track[] tracks) {
-        List<Song> songs = new ArrayList<>();
-        for (Track track : tracks) {
-            songs.add(Song.builder()
-                    .spotifyId(track.getUri())
-                    .title(track.getName())
-                    .artist(track.getArtists()[0].getName())
-                    .duration(track.getDurationMs() / 60000 + ":" + (track.getDurationMs() / 1000) % 60)
-                    .previewUrl(track.getPreviewUrl())
-                    .externalUrl(track.getExternalUrls().getExternalUrls().get("spotify"))
-                    .imageUrl(track.getAlbum().getImages()[0].getUrl())
-                    .album(track.getAlbum().getName())
-                    .build());
+    private Song[] getSongsFromTracksNew(Track[] tracks) {
+        Song[] songs = new Song[tracks.length];
+        for (int i = 0; i < tracks.length; i++) {
+            songs[i] = Song.builder()
+                    .spotifyId(tracks[i].getUri())
+                    .title(tracks[i].getName())
+                    .artist(tracks[i].getArtists()[0].getName())
+                    .duration(tracks[i].getDurationMs() / 60000 + ":" + (tracks[i].getDurationMs() / 1000) % 60)
+                    .previewUrl(tracks[i].getPreviewUrl())
+                    .externalUrl(tracks[i].getExternalUrls().getExternalUrls().get("spotify"))
+                    .imageUrl(tracks[i].getAlbum().getImages()[0].getUrl())
+                    .album(tracks[i].getAlbum().getName())
+                    .build();
         }
         return songs;
     }

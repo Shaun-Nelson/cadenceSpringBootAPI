@@ -1,6 +1,7 @@
 package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.*;
+import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.service.OpenAiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
