@@ -49,6 +49,9 @@ public class TokenService {
     }
 
     public String generateAccessTokenByUsername(String username) {
+        if (userRepository.findByUsername(username) == null) {
+            throw new IllegalArgumentException("User not found");
+        }
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")

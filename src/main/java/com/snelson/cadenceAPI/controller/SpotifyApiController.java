@@ -2,12 +2,13 @@ package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequest;
+import com.snelson.cadenceAPI.model.RefreshToken;
 import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.service.SpotifyApiService;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.java.Log;
@@ -18,22 +19,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
-import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
-import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.User;
-import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
-import se.michaelthelin.spotify.requests.authorization.client_credentials.ClientCredentialsRequest;
-import se.michaelthelin.spotify.requests.data.playlists.CreatePlaylistRequest;
-import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfileRequest;
 
 import java.io.IOException;
-import java.net.URI;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.List;
 
 @Log
@@ -97,15 +90,16 @@ public class SpotifyApiController {
     }
 
     @PostMapping("/playlists/spotify")
-    public ResponseEntity<String> createSpotifyPlaylist(@Valid @RequestBody String playlistJson) {
+    public ResponseEntity<String> createSpotifyPlaylist(@CookieValue String refresh_token, @Valid @RequestBody String playlistRequest) {
         try {
-            com.snelson.cadenceAPI.model.Playlist playlist = gson.fromJson(playlistJson, com.snelson.cadenceAPI.model.Playlist.class);
-
-            spotifyApiService.checkSpotifyCredentials();
+            spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
+            spotifyApiService.refreshSync();
+            Gson gson = new Gson();
+            SpotifyPlaylistRequest request = gson.fromJson(playlistRequest, SpotifyPlaylistRequest.class);
 
             User user = spotifyApiService.getCurrentUser();
-            Playlist newPlaylist = spotifyApiService.createPlaylist(user.getId(), playlist.getName(), playlist.getDescription());
-            spotifyApiService.addSongsToPlaylist(newPlaylist.getId(), spotifyApiService.getTrackIds(playlist.getSongs()));
+            Playlist newPlaylist = spotifyApiService.createPlaylist(user.getId(), request.getName(), request.getDescription());
+            spotifyApiService.addSongsToPlaylist(newPlaylist.getId(), spotifyApiService.getTrackIds(request.getSongs()));
 
             return new ResponseEntity<>(gson.toJson(newPlaylist), HttpStatus.OK);
         } catch (Exception e) {

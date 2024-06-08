@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -17,6 +18,7 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 public class Song {
 
     @MongoId
+    @Id
     private ObjectId id;
 
     @CreatedDate
@@ -34,7 +36,6 @@ public class Song {
     @NotNull(message = "Artist is required")
     private String artist;
 
-    @NotNull(message = "Duration is required")
     private String duration;
 
     private String previewUrl;

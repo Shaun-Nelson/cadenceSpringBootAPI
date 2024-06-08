@@ -1,5 +1,6 @@
 package com.snelson.cadenceAPI.dto;
 
+import com.snelson.cadenceAPI.model.Song;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class LoginResponse {
+public class SpotifyPlaylistRequest {
 
-    private String username;
-    private String accessToken;
-    private String refreshToken;
+    private String name;
+    private String description;
+    private SpotifyPlaylistRequestSong[] songs;
 }

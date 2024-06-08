@@ -2,6 +2,7 @@ package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequestSong;
 import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
@@ -12,7 +13,6 @@ import lombok.extern.java.Log;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.CookieValue;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
@@ -72,7 +72,7 @@ public class SpotifyApiService {
                 .create();
     }
 
-    private void refreshSync() {
+    public void refreshSync() {
         try {
             AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh().build();
             spotifyApi.setAccessToken(authorizationCodeRefreshRequest.execute().getAccessToken());
@@ -105,24 +105,12 @@ public class SpotifyApiService {
     }
 
     public void checkSpotifyCredentials() {
-        if (spotifyApi.getAccessToken() == null) {
-            if (spotifyApi.getRefreshToken() != null) {
-                refreshSync();
-            } else {
-                clientCredentials_Sync();
-            }
-        } else {
-            try {
-                getCurrentUser();
-            } catch (IOException | SpotifyWebApiException | ParseException e) {
-                clientCredentials_Sync();
-            }
-        }
+        clientCredentials_Sync();
     }
 
-    public String[] getTrackIds(List<Song> songs) {
+    public String[] getTrackIds(SpotifyPlaylistRequestSong[] songs) {
         List<String> trackIds = new ArrayList<>();
-        for (Song song : songs) {
+        for (SpotifyPlaylistRequestSong song : songs) {
             trackIds.add(song.getSpotifyId());
         }
         return trackIds.toArray(new String[0]);

@@ -33,7 +33,7 @@ public class TokenController {
                     String accessToken = tokenService.generateAccessTokenByUsername(user.getUsername());
                     return RefreshTokenResponse.builder()
                             .accessToken(accessToken)
-                            .refreshToken(refreshTokenRequest.getRefreshToken())
+                            .refreshToken(tokenService.generateRefreshToken(user.getUsername()).getRefreshToken())
                             .build();
                 }).orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
     }

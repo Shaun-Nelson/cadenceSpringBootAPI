@@ -41,22 +41,7 @@ public class SongService {
     }
 
     public Song updateSong(String id, Song song) {
-        try {
-            Song existingSong = songRepository.findById(id).orElse(null);
-            if (existingSong == null) {
-                return null;
-            }
-            existingSong.setTitle(song.getTitle());
-            existingSong.setArtist(song.getArtist());
-            existingSong.setDuration(song.getDuration());
-            existingSong.setPreviewUrl(song.getPreviewUrl());
-            existingSong.setImageUrl(song.getImageUrl());
-            existingSong.setAlbum(song.getAlbum());
-            return songRepository.save(existingSong);
-        } catch (Exception e) {
-            System.out.println("Error updating song: " + e.getMessage());
-            return null;
-        }
+        return song;
     }
 
     public boolean deleteSong(String id) {

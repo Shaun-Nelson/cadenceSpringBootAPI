@@ -1,5 +1,6 @@
 package com.snelson.cadenceAPI.dto;
 
+import com.snelson.cadenceAPI.model.RefreshToken;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
