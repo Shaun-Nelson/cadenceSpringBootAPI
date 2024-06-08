@@ -2,6 +2,7 @@ package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.PlaylistRequest;
 import com.snelson.cadenceAPI.model.Playlist;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.PlaylistRepository;
@@ -57,9 +58,9 @@ public class PlaylistService {
         playlistRepository.deleteById(id);
     }
 
-    public Playlist convertJsonToPlaylist(String json) {
+    public PlaylistRequest convertJsonToPlaylistRequest(String json) {
         try {
-            return gson.fromJson(json, Playlist.class);
+            return gson.fromJson(json, PlaylistRequest.class);
         } catch (Exception e) {
             System.out.println("Error converting JSON to Playlist: " + e.getMessage());
             return null;

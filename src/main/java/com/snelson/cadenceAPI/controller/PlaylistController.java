@@ -2,7 +2,10 @@ package com.snelson.cadenceAPI.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.PlaylistRequest;
+import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequestSong;
 import com.snelson.cadenceAPI.model.Playlist;
+import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.model.User;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.service.PlaylistService;
@@ -17,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -68,7 +72,12 @@ public class PlaylistController {
     public ResponseEntity<String> createPlaylist(@Valid @RequestBody String playlistJson, Authentication authentication) {
         try {
             User currentUser = userRepository.findByUsername(authentication.getName());
-            Playlist newPlaylist = playlistService.convertJsonToPlaylist(playlistJson);
+            PlaylistRequest requestPlaylist = playlistService.convertJsonToPlaylistRequest(playlistJson);
+            Playlist newPlaylist = Playlist.builder()
+                    .name(requestPlaylist.getName())
+                    .description(requestPlaylist.getDescription())
+                    .songs(List.of(requestPlaylist.getSongs()))
+                    .build();
             playlistService.createPlaylist(newPlaylist, currentUser);
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (Exception e) {

@@ -17,7 +17,6 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 @Builder
 public class Song {
 
-    @MongoId
     @Id
     private ObjectId id;
 
@@ -37,7 +36,6 @@ public class Song {
     private String artist;
 
     private String duration;
-
     private String previewUrl;
     private String externalUrl;
     private String imageUrl;
