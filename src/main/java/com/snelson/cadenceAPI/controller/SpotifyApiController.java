@@ -9,6 +9,7 @@ import com.snelson.cadenceAPI.service.SpotifyApiService;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.java.Log;
@@ -54,7 +55,7 @@ public class SpotifyApiController {
 
     @GetMapping("/login/spotify")
     public ResponseEntity<String> loginSpotify() {
-        String SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email";
+        String SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email streaming user-read-playback-state user-modify-playback-state";
         String result = gson.toJson(spotifyApiService.spotifyApi.authorizationCodeUri()
                 .scope(SCOPE)
                 .state(STATE)
@@ -104,6 +105,20 @@ public class SpotifyApiController {
             return new ResponseEntity<>(gson.toJson(newPlaylist), HttpStatus.OK);
         } catch (Exception e) {
             log.severe("Error creating Spotify playlist: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/login/spotify/refresh")
+    public ResponseEntity<String> refreshSpotifyToken(@CookieValue String refresh_token, HttpServletResponse response) {
+        try {
+            spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
+            spotifyApiService.refreshSync();
+            spotifyApiService.setCookies(3600, response);
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception e) {
+            log.severe("Error refreshing Spotify token: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

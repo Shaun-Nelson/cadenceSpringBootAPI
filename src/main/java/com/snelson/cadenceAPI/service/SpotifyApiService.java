@@ -166,6 +166,12 @@ public class SpotifyApiService {
             refreshToken.setSecure(ENV.equals("production"));
             refreshToken.setPath("/");
             response.addCookie(refreshToken);
+
+            Cookie expiresIn = new Cookie("expires_in", String.valueOf(accessTokenExpiresIn));
+            expiresIn.setMaxAge(EXPIRES_IN);
+            expiresIn.setSecure(ENV.equals("production"));
+            expiresIn.setPath("/");
+            response.addCookie(expiresIn);
         } catch (Exception e) {
             System.out.println("Error setting cookies: " + e.getMessage());
         }
