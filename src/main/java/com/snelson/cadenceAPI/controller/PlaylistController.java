@@ -55,13 +55,13 @@ public class PlaylistController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Playlist> getPlaylistById(@PathVariable("id") String id) {
+    public ResponseEntity<String> getPlaylistById(@PathVariable("id") String id) {
         try {
             Playlist playlist = playlistService.getPlaylistById(id);
             if (playlist == null) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-            return ResponseEntity.ok(playlist);
+            return ResponseEntity.ok(gson.toJson(playlist));
         } catch (Exception e) {
             System.out.println("Error getting playlist: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -77,6 +77,7 @@ public class PlaylistController {
                     .name(requestPlaylist.getName())
                     .description(requestPlaylist.getDescription())
                     .songs(List.of(requestPlaylist.getSongs()))
+                    .user(currentUser)
                     .build();
             playlistService.createPlaylist(newPlaylist, currentUser);
             return new ResponseEntity<>(HttpStatus.CREATED);
@@ -87,13 +88,13 @@ public class PlaylistController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Playlist> updatePlaylist(@PathVariable("id") String id, @Valid @RequestBody Playlist playlist) {
+    public ResponseEntity<String> updatePlaylist(@PathVariable("id") String id, @Valid @RequestBody Playlist playlist) {
         try {
             Playlist updatedPlaylist = playlistService.updatePlaylist(id, playlist);
             if (updatedPlaylist == null) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-            return ResponseEntity.ok(updatedPlaylist);
+            return ResponseEntity.ok(gson.toJson(updatedPlaylist));
         } catch (Exception e) {
             System.out.println("Error updating playlist: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

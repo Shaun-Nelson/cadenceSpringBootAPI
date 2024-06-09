@@ -9,9 +9,12 @@ import com.snelson.cadenceAPI.repository.PlaylistRepository;
 import com.snelson.cadenceAPI.repository.UserRepository;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
+import org.apache.hc.core5.http.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.List;
 
@@ -29,6 +32,9 @@ public class PlaylistService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SpotifyApiService spotifyApiService;
+
     public List<Playlist> getAllPlaylists(User user) {
         return playlistRepository.findByUser(user);
     }
@@ -37,7 +43,7 @@ public class PlaylistService {
         return playlistRepository.findById(id).orElse(null);
     }
 
-    public void createPlaylist(Playlist playlist, User user) {
+    public void createPlaylist(Playlist playlist, User user) throws IOException, ParseException, SpotifyWebApiException {
         playlist.setUser(user);
         playlistRepository.save(playlist);
     }
