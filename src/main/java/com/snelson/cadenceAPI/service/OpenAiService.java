@@ -2,7 +2,6 @@ package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.snelson.cadenceAPI.model.Song;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
@@ -51,7 +50,7 @@ public class OpenAiService {
                     .getContent();
 
             spotifyApiService.checkSpotifyCredentials();
-            Track[] tracks = getTracksFromJson(jsonResponse);
+            Track[] tracks = getTracksFromJsonSync(jsonResponse);
             List<Song> songs = getSongsFromTracksNew(tracks);
 
             return new Gson().toJson(songs);
@@ -139,21 +138,16 @@ public class OpenAiService {
         return songs;
     }
 
-    @NotNull
-    private String[] getTrackIdsFromJsonNew(String jsonResponse) {
+    private Track[] getTracksFromJsonSync(String jsonResponse) {
         Gson gson = new Gson();
         JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
-        List<String> trackIds = new ArrayList<>();
+        String[] queries = new String[jsonArray.size()];
 
-        for (JsonElement element : jsonArray) {
-            if (element.getAsString().startsWith("spotify:track:")) {
-                trackIds.add(element.getAsString().substring(14));
-            } else {
-                trackIds.add(element.getAsString());
-            }
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+            queries[i] = jsonObject.get("title") + " " + jsonObject.get("artist");
         }
-
-        return trackIds.toArray(new String[0]);
+        return spotifyApiService.getTracksSync(queries);
     }
 
     private List<Song> getSongsFromTracksNew(Track[] tracks) {

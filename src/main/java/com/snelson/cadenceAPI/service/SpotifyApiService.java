@@ -3,7 +3,6 @@ package com.snelson.cadenceAPI.service;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequestSong;
-import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.annotation.PostConstruct;
@@ -15,12 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
+import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.User;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.client_credentials.ClientCredentialsRequest;
 import se.michaelthelin.spotify.requests.data.playlists.CreatePlaylistRequest;
+import se.michaelthelin.spotify.requests.data.search.simplified.SearchTracksRequest;
 import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfileRequest;
 
 import java.io.IOException;
@@ -29,6 +30,8 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Log
@@ -176,5 +179,39 @@ public class SpotifyApiService {
         } catch (Exception e) {
             System.out.println("Error setting cookies: " + e.getMessage());
         }
+    }
+
+    public Track[] getTracksAsync(String[] queries) {
+        try {
+            List<CompletableFuture<Paging<Track>>> completableFutures = new ArrayList<>();
+            Track[] tracks = new Track[queries.length];
+            for (String query : queries) {
+                SearchTracksRequest searchTracksRequest = spotifyApi.searchTracks(query).includeExternal("audio").build();
+                CompletableFuture<Paging<Track>> pagingFuture = searchTracksRequest.executeAsync();
+                completableFutures.add(pagingFuture);
+            }
+            completableFutures.forEach(CompletableFuture::join);
+            for (int i = 0; i < completableFutures.size(); i++) {
+                tracks[i] = completableFutures.get(i).join().getItems()[0];
+            }
+            return tracks;
+        } catch (Exception e) {
+            System.out.println("Error getting track async: " + e.getMessage());
+        }
+        return new Track[0];
+    }
+
+    public Track[] getTracksSync (String[] queries) {
+        try {
+            Track[] tracks = new Track[queries.length];
+            for (int i = 0; i < queries.length; i++) {
+                Paging<Track> paging = spotifyApi.searchTracks(queries[i]).build().execute();
+                tracks[i] = paging.getItems()[0];
+            }
+            return tracks;
+        } catch (Exception e) {
+            System.out.println("Error getting track sync: " + e.getMessage());
+        }
+        return new Track[0];
     }
 }
