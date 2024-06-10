@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -167,7 +168,7 @@ public class SpotifyApiService {
             refreshToken.setPath("/");
             response.addCookie(refreshToken);
 
-            Cookie expiresIn = new Cookie("expires_in", String.valueOf(accessTokenExpiresIn));
+            Cookie expiresIn = new Cookie("expires_in", String.valueOf(new Date().toInstant().plusSeconds(EXPIRES_IN).getEpochSecond()));
             expiresIn.setMaxAge(EXPIRES_IN);
             expiresIn.setSecure(ENV.equals("production"));
             expiresIn.setPath("/");
