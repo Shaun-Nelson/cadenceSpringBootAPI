@@ -52,7 +52,7 @@ public class OpenAiService {
                     .getContent();
 
             spotifyApiService.checkSpotifyCredentials();
-            Track[] tracks = getTracksFromJsonAsync(jsonResponse);
+            Track[] tracks = getTracksFromJsonSync(jsonResponse);
             List<Song> songs = getSongsFromTracksNew(tracks);
 
             return new Gson().toJson(songs);

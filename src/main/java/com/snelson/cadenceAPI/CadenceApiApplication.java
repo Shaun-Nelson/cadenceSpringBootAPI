@@ -24,7 +24,7 @@ import java.util.concurrent.Executor;
 @EnableMongoAuditing
 @CrossOrigin(origins = {"http://localhost:8080", "http://localhost:5173", "cadence.technology"}, allowCredentials = "true")
 @EnableConfigurationProperties(SecurityProperties.class)
-@EnableAsync
+//@EnableAsync
 @Log
 public class CadenceApiApplication implements CommandLineRunner{
 
@@ -37,14 +37,14 @@ public class CadenceApiApplication implements CommandLineRunner{
 		log.info("Application started");
 	}
 
-	@Bean
-	public Executor taskExecutor() {
-		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(2);
-		executor.setMaxPoolSize(2);
-		executor.setQueueCapacity(500);
-		executor.setThreadNamePrefix("SpotifySearch-");
-		executor.initialize();
-		return executor;
-	}
+//	@Bean
+//	public Executor taskExecutor() {
+//		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+//		executor.setCorePoolSize(2);
+//		executor.setMaxPoolSize(2);
+//		executor.setQueueCapacity(500);
+//		executor.setThreadNamePrefix("SpotifySearch-");
+//		executor.initialize();
+//		return executor;
+//	}
 }

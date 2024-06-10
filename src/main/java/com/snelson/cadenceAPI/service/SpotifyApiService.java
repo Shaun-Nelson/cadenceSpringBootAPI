@@ -22,18 +22,15 @@ import se.michaelthelin.spotify.model_objects.specification.User;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.client_credentials.ClientCredentialsRequest;
 import se.michaelthelin.spotify.requests.data.playlists.CreatePlaylistRequest;
-import se.michaelthelin.spotify.requests.data.search.simplified.SearchTracksRequest;
 import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfileRequest;
 
 import java.io.IOException;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 @Service
 @Log
@@ -54,9 +51,9 @@ public class SpotifyApiService {
     @Value("${ENV}")
     private String ENV;
 
-    private String STATE;
-    private String SCOPE;
-    private Gson gson;
+    public String STATE;
+    public String SCOPE;
+    public Gson gson;
     public SpotifyApi spotifyApi;
 
     @PostConstruct
@@ -67,8 +64,6 @@ public class SpotifyApiService {
                 .setRedirectUri(URI.create(REDIRECT_URI))
                 .build();
 
-        log.info("Spotify API initialized");
-
         this.STATE = generateRandomString(16);
         this.SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email";
 
@@ -76,6 +71,7 @@ public class SpotifyApiService {
                 .setExclusionStrategies(new CustomGsonExclusionStrategy())
                 .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
                 .create();
+        log.info("SpotifyApiService initialized");
     }
 
     public void refreshSync() {

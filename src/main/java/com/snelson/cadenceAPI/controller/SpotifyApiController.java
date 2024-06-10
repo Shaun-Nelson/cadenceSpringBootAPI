@@ -51,10 +51,12 @@ public class SpotifyApiController {
                 .setExclusionStrategies(new CustomGsonExclusionStrategy())
                 .registerTypeAdapter(SecureRandom.class, new SecureRandomTypeAdapter())
                 .create();
+        log.info("SpotifyApiController initialized");
     }
 
     @GetMapping("/login/spotify")
     public ResponseEntity<String> loginSpotify() {
+        try {
         String SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email streaming user-read-playback-state user-modify-playback-state";
         String result = gson.toJson(spotifyApiService.spotifyApi.authorizationCodeUri()
                 .scope(SCOPE)
@@ -65,6 +67,10 @@ public class SpotifyApiController {
                 .toString());
 
         return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception e) {
+            log.severe("Error on Spotify login: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping("/callback")
@@ -112,11 +118,14 @@ public class SpotifyApiController {
     @GetMapping("/login/spotify/refresh")
     public ResponseEntity<String> refreshSpotifyToken(@CookieValue String refresh_token, HttpServletResponse response) {
         try {
-            spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
-            spotifyApiService.refreshSync();
-            spotifyApiService.setCookies(3600, response);
-
-            return new ResponseEntity<>(HttpStatus.OK);
+            if (!refresh_token.isEmpty()) {
+                spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
+                spotifyApiService.refreshSync();
+                spotifyApiService.setCookies(3600, response);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
         } catch (Exception e) {
             log.severe("Error refreshing Spotify token: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
