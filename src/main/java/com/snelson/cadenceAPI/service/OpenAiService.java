@@ -11,10 +11,12 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 
 @Service
@@ -50,7 +52,7 @@ public class OpenAiService {
                     .getContent();
 
             spotifyApiService.checkSpotifyCredentials();
-            Track[] tracks = getTracksFromJsonSync(jsonResponse);
+            Track[] tracks = getTracksFromJsonAsync(jsonResponse);
             List<Song> songs = getSongsFromTracksNew(tracks);
 
             return new Gson().toJson(songs);
@@ -148,6 +150,25 @@ public class OpenAiService {
             queries[i] = jsonObject.get("title") + " " + jsonObject.get("artist");
         }
         return spotifyApiService.getTracksSync(queries);
+    }
+
+    private Track[] getTracksFromJsonAsync(String jsonResponse) {
+        Gson gson = new Gson();
+        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
+        Track[] tracks = new Track[jsonArray.size()];
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+            String query = jsonObject.get("title") + " " + jsonObject.get("artist");
+            CompletableFuture<Paging<Track>> pagingFuture = spotifyApiService.getTrackAsync(query);
+            try {
+                Paging<Track> paging = pagingFuture.get();
+                tracks[i] = paging.getItems()[0];
+            } catch (Exception e) {
+                System.out.println("Error getting track for query '" + query + "': " + e.getMessage());
+            }
+        }
+        return tracks;
     }
 
     private List<Song> getSongsFromTracksNew(Track[] tracks) {

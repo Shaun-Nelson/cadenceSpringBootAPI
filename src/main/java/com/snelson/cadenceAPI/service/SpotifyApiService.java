@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.java.Log;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
@@ -28,10 +29,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Service
 @Log
@@ -186,14 +188,22 @@ public class SpotifyApiService {
             List<CompletableFuture<Paging<Track>>> completableFutures = new ArrayList<>();
             Track[] tracks = new Track[queries.length];
             for (String query : queries) {
-                SearchTracksRequest searchTracksRequest = spotifyApi.searchTracks(query).includeExternal("audio").build();
-                CompletableFuture<Paging<Track>> pagingFuture = searchTracksRequest.executeAsync();
+                CompletableFuture<Paging<Track>> pagingFuture = spotifyApi.searchTracks(query).includeExternal("audio").build().executeAsync();
                 completableFutures.add(pagingFuture);
+                System.out.println("Searching for track: " + query);
             }
-            completableFutures.forEach(CompletableFuture::join);
-            for (int i = 0; i < completableFutures.size(); i++) {
-                tracks[i] = completableFutures.get(i).join().getItems()[0];
-            }
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[0])).thenApply(v -> {
+                for (int i = 0; i < completableFutures.size(); i++) {
+                    try {
+                        Paging<Track> paging = completableFutures.get(i).get();
+                        tracks[i] = paging.getItems()[0];
+                    } catch (Exception e) {
+                        System.out.println("Error getting track for query '" + queries[i] + "': " + e.getMessage());
+                    }
+                }
+                return null;
+            });
+            allFutures.get();
             return tracks;
         } catch (Exception e) {
             System.out.println("Error getting track async: " + e.getMessage());
@@ -205,6 +215,7 @@ public class SpotifyApiService {
         try {
             Track[] tracks = new Track[queries.length];
             for (int i = 0; i < queries.length; i++) {
+                System.out.println("Searching for track: " + queries[i]);
                 Paging<Track> paging = spotifyApi.searchTracks(queries[i]).build().execute();
                 tracks[i] = paging.getItems()[0];
             }
@@ -213,5 +224,16 @@ public class SpotifyApiService {
             System.out.println("Error getting track sync: " + e.getMessage());
         }
         return new Track[0];
+    }
+
+    @Async
+    public CompletableFuture<Paging<Track>> getTrackAsync (String query) {
+        try {
+            System.out.println("Searching for track async: " + query);
+            return CompletableFuture.completedFuture(spotifyApi.searchTracks(query).build().execute());
+        } catch (Exception e) {
+            System.out.println("Error getting track async: " + e.getMessage());
+        }
+        return null;
     }
 }

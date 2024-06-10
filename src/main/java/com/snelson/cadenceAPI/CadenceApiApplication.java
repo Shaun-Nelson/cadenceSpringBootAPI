@@ -10,15 +10,21 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.CrossOrigin;
+
+import java.util.concurrent.Executor;
 
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class, DataSourceAutoConfiguration.class})
 @EnableMongoRepositories
 @EnableMongoAuditing
 @CrossOrigin(origins = {"http://localhost:8080", "http://localhost:5173", "cadence.technology"}, allowCredentials = "true")
 @EnableConfigurationProperties(SecurityProperties.class)
+@EnableAsync
 @Log
 public class CadenceApiApplication implements CommandLineRunner{
 
@@ -29,5 +35,16 @@ public class CadenceApiApplication implements CommandLineRunner{
 	@Override
 	public void run(String... args) throws Exception {
 		log.info("Application started");
+	}
+
+	@Bean
+	public Executor taskExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(2);
+		executor.setMaxPoolSize(2);
+		executor.setQueueCapacity(500);
+		executor.setThreadNamePrefix("SpotifySearch-");
+		executor.initialize();
+		return executor;
 	}
 }
