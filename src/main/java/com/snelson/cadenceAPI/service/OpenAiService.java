@@ -28,9 +28,12 @@ public class OpenAiService {
     @Autowired
     private SpotifyApiService spotifyApiService;
 
+    @Autowired
+    private TrackService trackService;
+
     public String processRequest(String length, String input) {
         List<ChatMessage> messages = getChatMessages(length, input);
-        int TIMEOUT_DURATION_IN_SECONDS = 120;
+        int TIMEOUT_DURATION_IN_SECONDS = 30;
         com.theokanning.openai.service.OpenAiService service = new com.theokanning.openai.service.OpenAiService(OPENAI_API_KEY, Duration.ofSeconds(TIMEOUT_DURATION_IN_SECONDS));
 
         try {
@@ -160,7 +163,7 @@ public class OpenAiService {
         for (int i = 0; i < jsonArray.size(); i++) {
             JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
             String query = jsonObject.get("title") + " " + jsonObject.get("artist");
-            CompletableFuture<Paging<Track>> pagingFuture = spotifyApiService.getTrackAsync(query);
+            CompletableFuture<Paging<Track>> pagingFuture = trackService.getTrackAsync(query);
             try {
                 Paging<Track> paging = pagingFuture.get();
                 tracks[i] = paging.getItems()[0];
@@ -169,6 +172,25 @@ public class OpenAiService {
             }
         }
         return tracks;
+    }
+
+    private Track[] getTracksFromJsonAsyncNew(String jsonResponse) {
+        Gson gson = new Gson();
+        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
+        String[] queries = new String[jsonArray.size()];
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+            queries[i] = jsonObject.get("title") + " " + jsonObject.get("artist");
+        }
+        CompletableFuture<Paging<Track>> completableFuture = trackService.getTracksAsync(queries);
+        try {
+            Paging<Track> paging = completableFuture.get();
+            return paging.getItems();
+        } catch (Exception e) {
+            System.out.println("Error getting tracks async: " + e.getMessage());
+        }
+        return new Track[0];
     }
 
     private List<Song> getSongsFromTracksNew(Track[] tracks) {

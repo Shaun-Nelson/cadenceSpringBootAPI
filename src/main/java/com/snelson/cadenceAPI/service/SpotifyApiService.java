@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 @Service
 @Log
@@ -179,34 +180,6 @@ public class SpotifyApiService {
         }
     }
 
-    public Track[] getTracksAsync(String[] queries) {
-        try {
-            List<CompletableFuture<Paging<Track>>> completableFutures = new ArrayList<>();
-            Track[] tracks = new Track[queries.length];
-            for (String query : queries) {
-                CompletableFuture<Paging<Track>> pagingFuture = spotifyApi.searchTracks(query).includeExternal("audio").build().executeAsync();
-                completableFutures.add(pagingFuture);
-                System.out.println("Searching for track: " + query);
-            }
-            CompletableFuture<Void> allFutures = CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[0])).thenApply(v -> {
-                for (int i = 0; i < completableFutures.size(); i++) {
-                    try {
-                        Paging<Track> paging = completableFutures.get(i).get();
-                        tracks[i] = paging.getItems()[0];
-                    } catch (Exception e) {
-                        System.out.println("Error getting track for query '" + queries[i] + "': " + e.getMessage());
-                    }
-                }
-                return null;
-            });
-            allFutures.get();
-            return tracks;
-        } catch (Exception e) {
-            System.out.println("Error getting track async: " + e.getMessage());
-        }
-        return new Track[0];
-    }
-
     public Track[] getTracksSync (String[] queries) {
         try {
             Track[] tracks = new Track[queries.length];
@@ -220,16 +193,5 @@ public class SpotifyApiService {
             System.out.println("Error getting track sync: " + e.getMessage());
         }
         return new Track[0];
-    }
-
-    @Async
-    public CompletableFuture<Paging<Track>> getTrackAsync (String query) {
-        try {
-            System.out.println("Searching for track async: " + query);
-            return CompletableFuture.completedFuture(spotifyApi.searchTracks(query).build().execute());
-        } catch (Exception e) {
-            System.out.println("Error getting track async: " + e.getMessage());
-        }
-        return null;
     }
 }

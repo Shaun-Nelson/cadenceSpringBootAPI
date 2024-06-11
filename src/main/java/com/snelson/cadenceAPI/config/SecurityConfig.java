@@ -47,8 +47,8 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/*", "/assets/**", "/error", "/api/auth/refresh", "/api/openai", "/api/callback", "/api/login/spotify/refresh", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
-                        .requestMatchers("/api/auth/token", "/api/playlists/**", "/api/login/spotify", "/api/playlists/spotify").hasAuthority("SCOPE_ROLE_USER")
+                        .requestMatchers("/*", "/assets/**", "/error", "/api/auth/refresh", "/api/openai", "/api/callback", "/api/users/login", "/api/users/signup", "/api/users/logout").permitAll()
+                        .requestMatchers("/api/auth/token", "/api/playlists/**", "/api/login/spotify", "/api/login/spotify/refresh", "/api/playlists/spotify").hasAuthority("SCOPE_ROLE_USER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

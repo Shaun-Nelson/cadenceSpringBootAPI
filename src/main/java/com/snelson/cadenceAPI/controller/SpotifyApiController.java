@@ -118,14 +118,12 @@ public class SpotifyApiController {
     @GetMapping("/login/spotify/refresh")
     public ResponseEntity<String> refreshSpotifyToken(@CookieValue String refresh_token, HttpServletResponse response) {
         try {
-            if (!refresh_token.isEmpty()) {
+            if (refresh_token != null) {
                 spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
-                spotifyApiService.refreshSync();
-                spotifyApiService.setCookies(3600, response);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
+            spotifyApiService.refreshSync();
+            spotifyApiService.setCookies(3600, response);
+            return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             log.severe("Error refreshing Spotify token: " + e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
