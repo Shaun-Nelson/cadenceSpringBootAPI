@@ -66,16 +66,12 @@ public class SpotifyApiService {
     public String STATE;
     public String SCOPE;
     public Gson gson;
+
+    @Autowired
     public SpotifyApi spotifyApi;
 
     @PostConstruct
     public void init() {
-        spotifyApi = new SpotifyApi.Builder()
-                .setClientId(CLIENT_ID)
-                .setClientSecret(CLIENT_SECRET)
-                .setRedirectUri(URI.create(REDIRECT_URI))
-                .build();
-
         this.STATE = generateRandomString(16);
         this.SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email";
 
@@ -90,6 +86,7 @@ public class SpotifyApiService {
         try {
             AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh().build();
             spotifyApi.setAccessToken(authorizationCodeRefreshRequest.execute().getAccessToken());
+            spotifyApi.setRefreshToken(authorizationCodeRefreshRequest.execute().getRefreshToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error refreshing Spotify access token: " + e.getMessage());
         }
@@ -168,7 +165,7 @@ public class SpotifyApiService {
     public void setCookies(int accessTokenExpiresIn, HttpServletResponse response) {
         try {
             int EXPIRES_IN = 60 * 60 * 24 * 30;
-
+            log.info("Setting cookies. Refresh token: " + spotifyApi.getRefreshToken() + " Access token: " + spotifyApi.getAccessToken());
             Cookie accessToken = new Cookie("access_token", spotifyApi.getAccessToken());
             accessToken.setMaxAge(accessTokenExpiresIn);
             accessToken.setSecure(ENV.equals("production"));
@@ -186,6 +183,8 @@ public class SpotifyApiService {
             expiresIn.setSecure(ENV.equals("production"));
             expiresIn.setPath("/");
             response.addCookie(expiresIn);
+
+            log.info("Cookies set");
         } catch (Exception e) {
             System.out.println("Error setting cookies: " + e.getMessage());
         }

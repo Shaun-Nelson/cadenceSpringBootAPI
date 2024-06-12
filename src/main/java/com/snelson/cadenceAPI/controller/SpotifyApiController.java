@@ -126,11 +126,14 @@ public class SpotifyApiController {
                 log.severe("SpotifyApiService.spotifyApi is null. Initialization may have failed.");
                 throw new IllegalStateException("SpotifyApiService.spotifyApi is null");
             }
-            if (refresh_token != null) {
-                spotifyApi.setRefreshToken(refresh_token);
+            if (refresh_token == null) {
+                log.severe("Refresh token is null. User may not be logged in.");
+                throw new IllegalStateException("Refresh token is null");
             }
-            spotifyApiService.refreshSync();
+            spotifyApi.setRefreshToken(refresh_token);
+            spotifyApiService.checkSpotifyCredentials();
             spotifyApiService.setCookies(3600, response);
+
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             log.severe("Error refreshing Spotify token: " + e.getMessage());
