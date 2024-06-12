@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
+import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
@@ -37,6 +38,9 @@ public class SpotifyApiController {
 
     @Value("${CLIENT_URL}")
     private String CLIENT_URL;
+
+    @Autowired
+    private SpotifyApi spotifyApi;
 
     @Autowired
     private SpotifyApiService spotifyApiService;
@@ -58,7 +62,7 @@ public class SpotifyApiController {
     public ResponseEntity<String> loginSpotify() {
         try {
         String SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email streaming user-read-playback-state user-modify-playback-state";
-        String result = gson.toJson(spotifyApiService.spotifyApi.authorizationCodeUri()
+        String result = gson.toJson(spotifyApi.authorizationCodeUri()
                 .scope(SCOPE)
                 .state(STATE)
                 .show_dialog(true)
@@ -80,11 +84,11 @@ public class SpotifyApiController {
                 throw new Exception("State mismatch");
             }
 
-            AuthorizationCodeRequest authorizationCodeRequest = spotifyApiService.spotifyApi.authorizationCode(code).build();
+            AuthorizationCodeRequest authorizationCodeRequest = spotifyApi.authorizationCode(code).build();
             AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRequest.execute();
 
-            spotifyApiService.spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
-            spotifyApiService.spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
+            spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
+            spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
             spotifyApiService.setCookies(authorizationCodeCredentials.getExpiresIn(), response);
 
             return new RedirectView(CLIENT_URL);
@@ -99,7 +103,7 @@ public class SpotifyApiController {
     @PostMapping("/playlists/spotify")
     public ResponseEntity<String> createSpotifyPlaylist(@CookieValue String refresh_token, @Valid @RequestBody String playlistRequest) {
         try {
-            spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
+            spotifyApi.setRefreshToken(refresh_token);
             spotifyApiService.refreshSync();
             Gson gson = new Gson();
             SpotifyPlaylistRequest request = gson.fromJson(playlistRequest, SpotifyPlaylistRequest.class);
@@ -115,18 +119,22 @@ public class SpotifyApiController {
         }
     }
 
-    @GetMapping("/login/spotify/refresh")
+    @PostMapping("/spotify/refresh")
     public ResponseEntity<String> refreshSpotifyToken(@CookieValue String refresh_token, HttpServletResponse response) {
         try {
+            if (spotifyApi == null) {
+                log.severe("SpotifyApiService.spotifyApi is null. Initialization may have failed.");
+                throw new IllegalStateException("SpotifyApiService.spotifyApi is null");
+            }
             if (refresh_token != null) {
-                spotifyApiService.spotifyApi.setRefreshToken(refresh_token);
+                spotifyApi.setRefreshToken(refresh_token);
             }
             spotifyApiService.refreshSync();
             spotifyApiService.setCookies(3600, response);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             log.severe("Error refreshing Spotify token: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 }

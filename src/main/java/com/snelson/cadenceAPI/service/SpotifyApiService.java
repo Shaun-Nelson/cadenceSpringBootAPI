@@ -258,7 +258,6 @@ public class SpotifyApiService {
                         .thenAccept(response -> {
                             int statusCode = response.statusCode();
                             if (statusCode >= 200 && statusCode < 300) {
-                                System.out.println("Search successful for query: " + query);
                                 String responseBody = response.body();
                                 Gson gson = new Gson();
                                 SearchTracksAsyncResponse asyncResponse = gson.fromJson(responseBody, SearchTracksAsyncResponse.class);
@@ -273,7 +272,6 @@ public class SpotifyApiService {
                                         .externalUrl(asyncResponse.getTracks().getItems().getFirst().getExternalUrls().getSpotify())
                                         .build();
                                 songs.add(song);
-                                System.out.println("Song added: " + song);
                             } else {
                                 System.out.println("Search failed for query: " + query + " with status code: " + statusCode);
                             }
@@ -287,10 +285,16 @@ public class SpotifyApiService {
                 System.out.println("Invalid URI for query: " + query + ": " + e.getMessage());
             }
         }
-
-        // Wait for all futures to complete
         CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-
-        return allOf.thenApply(v -> songs);
+        return allOf.thenApply(v -> {
+            futures.forEach(future -> {
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    System.out.println("Error waiting for future completion: " + e.getMessage());
+                }
+            });
+            return songs;
+        });
     }
 }
