@@ -2,14 +2,18 @@ package com.snelson.cadenceAPI.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.snelson.cadenceAPI.dto.SearchTracksAsyncResponse;
 import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequestSong;
+import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.java.Log;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.ParseException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -26,16 +30,23 @@ import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfi
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.stream.Stream;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Log
 public class SpotifyApiService {
+
+    @Autowired
+    private CloseableHttpClient httpClient;
 
     @Value("${CLIENT_ID}")
     private String CLIENT_ID;
@@ -180,7 +191,7 @@ public class SpotifyApiService {
         }
     }
 
-    public Track[] getTracksSync (String[] queries) {
+    public Track[] getTracksSync(String[] queries) {
         try {
             Track[] tracks = new Track[queries.length];
             for (int i = 0; i < queries.length; i++) {
@@ -193,5 +204,93 @@ public class SpotifyApiService {
             System.out.println("Error getting track sync: " + e.getMessage());
         }
         return new Track[0];
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<Track[]> getTracksAsync(String[] queries) {
+        try {
+            List<CompletableFuture<Track>> futures = new ArrayList<>();
+            for (String query : queries) {
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    try {
+                        System.out.println("Searching for track async: " + query);
+                        Paging<Track> paging = spotifyApi.searchTracks(query).build().execute();
+                        Track[] tracks = paging.getItems();
+                        return (tracks.length > 0) ? tracks[0] : null;  // Return the first track if available
+                    } catch (IOException | SpotifyWebApiException | ParseException e) {
+                        System.out.println("Error getting track async: " + e.getMessage());
+                        return null;
+                    }
+                }));
+            }
+
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+            return allFutures.thenApply(v -> futures.stream()
+                    .map(CompletableFuture::join)
+                    .filter(Objects::nonNull) // Ensure null tracks are not included
+                    .toArray(Track[]::new));
+        } catch (Exception e) {
+            System.out.println("Error getting tracks async: " + e.getMessage());
+            return CompletableFuture.completedFuture(new Track[0]);
+        }
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<List<Song>> searchTracksAsync(String[] queries) {
+        checkSpotifyCredentials();
+
+        final String ENDPOINT = "https://api.spotify.com/v1/search";
+        HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+        List<Song> songs = new ArrayList<>();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (String query : queries) {
+            try {
+                URI uri = new URI(ENDPOINT + "?q=" + query + "&type=track&limit=1&offset=0&include_external=audio");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(uri)
+                        .header("Authorization", "Bearer " + spotifyApi.getAccessToken())
+                        .GET()
+                        .build();
+
+                CompletableFuture<Void> future = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                        .thenAccept(response -> {
+                            int statusCode = response.statusCode();
+                            if (statusCode >= 200 && statusCode < 300) {
+                                System.out.println("Search successful for query: " + query);
+                                String responseBody = response.body();
+                                Gson gson = new Gson();
+                                SearchTracksAsyncResponse asyncResponse = gson.fromJson(responseBody, SearchTracksAsyncResponse.class);
+                                Song song = Song.builder()
+                                        .title(asyncResponse.getTracks().getItems().getFirst().getName())
+                                        .artist(asyncResponse.getTracks().getItems().getFirst().getArtists().get(0).getName())
+                                        .album(asyncResponse.getTracks().getItems().getFirst().getAlbum().getName())
+                                        .spotifyId(asyncResponse.getTracks().getItems().getFirst().getUri())
+                                        .imageUrl(asyncResponse.getTracks().getItems().getFirst().getAlbum().getImages().getFirst().getUrl())
+                                        .duration(String.valueOf(asyncResponse.getTracks().getItems().getFirst().getDurationMs()))
+                                        .previewUrl(asyncResponse.getTracks().getItems().getFirst().getPreviewUrl())
+                                        .externalUrl(asyncResponse.getTracks().getItems().getFirst().getExternalUrls().getSpotify())
+                                        .build();
+                                songs.add(song);
+                                System.out.println("Song added: " + song);
+                            } else {
+                                System.out.println("Search failed for query: " + query + " with status code: " + statusCode);
+                            }
+                        })
+                        .exceptionally(e -> {
+                            System.out.println("Error executing search request for query: " + query + ": " + e.getMessage());
+                            return null;
+                        });
+                futures.add(future);
+            } catch (URISyntaxException e) {
+                System.out.println("Invalid URI for query: " + query + ": " + e.getMessage());
+            }
+        }
+
+        // Wait for all futures to complete
+        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+        return allOf.thenApply(v -> songs);
     }
 }

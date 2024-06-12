@@ -36,15 +36,4 @@ public class CadenceApiApplication implements CommandLineRunner{
 	public void run(String... args) throws Exception {
 		log.info("Application started");
 	}
-
-	@Bean
-	public Executor taskExecutor() {
-		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(2);
-		executor.setMaxPoolSize(2);
-		executor.setQueueCapacity(500);
-		executor.setThreadNamePrefix("SpotifySearch-");
-		executor.initialize();
-		return executor;
-	}
 }

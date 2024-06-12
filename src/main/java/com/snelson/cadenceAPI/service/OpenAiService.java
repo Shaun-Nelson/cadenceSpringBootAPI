@@ -3,6 +3,7 @@ package com.snelson.cadenceAPI.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.snelson.cadenceAPI.dto.SearchTracksAsyncResponse;
 import com.snelson.cadenceAPI.model.Song;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -10,13 +11,15 @@ import com.theokanning.openai.completion.chat.ChatMessageRole;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
-import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 
 @Service
@@ -55,13 +58,10 @@ public class OpenAiService {
                     .getContent();
 
             spotifyApiService.checkSpotifyCredentials();
-            Track[] tracks = getTracksFromJsonSync(jsonResponse);
-            List<Song> songs = getSongsFromTracksNew(tracks);
-
-            return new Gson().toJson(songs);
+            return new Gson().toJson(getTracksFromJsonAsyncNew(jsonResponse));
         } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
-            return new Gson().toJson("Error: " + e.getMessage());
+            System.out.println("Error processing request: " + e.getMessage());
+            return null;
         }
     }
 
@@ -126,6 +126,29 @@ public class OpenAiService {
         return tracks;
     }
 
+    public List<Song> getTracksFromJsonAsyncNew(String jsonResponse) {
+        Gson gson = new Gson();
+        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
+        String[] queries = new String[jsonArray.size()];
+
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+            String query = jsonObject.get("title").getAsString() + "%20" + jsonObject.get("artist").getAsString();
+            queries[i] = query.replace(" ", "%20");
+        }
+
+        try {
+            CompletableFuture<List<Song>> songsFuture = spotifyApiService.searchTracksAsync(queries);
+            List<Song> songs = songsFuture.get(); // get() will block until the future is complete
+            System.out.println("Songs: " + songs);
+            return songs;
+        } catch (Exception e) {
+            System.out.println("Error getting tracks from json async new: " + e.getMessage());
+            return null;
+        }
+    }
+
+
     private List<Song> getSongsFromTracks(List<Track> tracks) {
         List<Song> songs = new ArrayList<>();
         for (Track track : tracks) {
@@ -158,39 +181,20 @@ public class OpenAiService {
     private Track[] getTracksFromJsonAsync(String jsonResponse) {
         Gson gson = new Gson();
         JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
-        Track[] tracks = new Track[jsonArray.size()];
-
-        for (int i = 0; i < jsonArray.size(); i++) {
-            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
-            String query = jsonObject.get("title") + " " + jsonObject.get("artist");
-            CompletableFuture<Paging<Track>> pagingFuture = trackService.getTrackAsync(query);
-            try {
-                Paging<Track> paging = pagingFuture.get();
-                tracks[i] = paging.getItems()[0];
-            } catch (Exception e) {
-                System.out.println("Error getting track for query '" + query + "': " + e.getMessage());
-            }
-        }
-        return tracks;
-    }
-
-    private Track[] getTracksFromJsonAsyncNew(String jsonResponse) {
-        Gson gson = new Gson();
-        JsonArray jsonArray = gson.fromJson(jsonResponse, JsonArray.class);
         String[] queries = new String[jsonArray.size()];
 
         for (int i = 0; i < jsonArray.size(); i++) {
             JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
-            queries[i] = jsonObject.get("title") + " " + jsonObject.get("artist");
+            String query = jsonObject.get("title") + " " + jsonObject.get("artist");
+            queries[i] = query;
         }
-        CompletableFuture<Paging<Track>> completableFuture = trackService.getTracksAsync(queries);
+        CompletableFuture<Track[]> tracksFuture = spotifyApiService.getTracksAsync(queries);
         try {
-            Paging<Track> paging = completableFuture.get();
-            return paging.getItems();
+            return tracksFuture.get();
         } catch (Exception e) {
-            System.out.println("Error getting tracks async: " + e.getMessage());
+            System.out.println("Error getting tracks from json async: " + e.getMessage());
+            return null;
         }
-        return new Track[0];
     }
 
     private List<Song> getSongsFromTracksNew(Track[] tracks) {
