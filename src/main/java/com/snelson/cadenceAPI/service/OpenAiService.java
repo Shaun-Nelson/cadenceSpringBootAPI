@@ -3,7 +3,6 @@ package com.snelson.cadenceAPI.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.snelson.cadenceAPI.dto.SearchTracksAsyncResponse;
 import com.snelson.cadenceAPI.model.Song;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -11,15 +10,12 @@ import com.theokanning.openai.completion.chat.ChatMessageRole;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 
 @Service
@@ -58,7 +54,8 @@ public class OpenAiService {
                     .getContent();
 
             spotifyApiService.checkSpotifyCredentials();
-            return new Gson().toJson(getTracksFromJsonAsyncNew(jsonResponse));
+            Set<Song> songs = new HashSet<>(getTracksFromJsonAsyncNew(jsonResponse));
+            return new Gson().toJson(songs);
         } catch (Exception e) {
             System.out.println("Error processing request: " + e.getMessage());
             return null;

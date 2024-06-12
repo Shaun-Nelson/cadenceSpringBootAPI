@@ -49,18 +49,6 @@ public class SpotifyApiService {
     @Autowired
     private CloseableHttpClient httpClient;
 
-    @Value("${CLIENT_ID}")
-    private String CLIENT_ID;
-
-    @Value("${CLIENT_SECRET}")
-    private String CLIENT_SECRET;
-
-    @Value("${REDIRECT_URI}")
-    private String REDIRECT_URI;
-
-    @Value("${CLIENT_URL}")
-    private String CLIENT_URL;
-
     @Value("${ENV}")
     private String ENV;
 
@@ -87,7 +75,6 @@ public class SpotifyApiService {
         try {
             AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh().build();
             spotifyApi.setAccessToken(authorizationCodeRefreshRequest.execute().getAccessToken());
-            spotifyApi.setRefreshToken(authorizationCodeRefreshRequest.execute().getRefreshToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             System.out.println("Error refreshing Spotify access token: " + e.getMessage());
         }
