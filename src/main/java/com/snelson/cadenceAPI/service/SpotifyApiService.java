@@ -7,6 +7,7 @@ import com.snelson.cadenceAPI.dto.SpotifyPlaylistRequestSong;
 import com.snelson.cadenceAPI.model.Song;
 import com.snelson.cadenceAPI.utils.CustomGsonExclusionStrategy;
 import com.snelson.cadenceAPI.utils.SecureRandomTypeAdapter;
+import com.snelson.cadenceAPI.utils.TimeConverter;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -73,7 +74,7 @@ public class SpotifyApiService {
     @PostConstruct
     public void init() {
         this.STATE = generateRandomString(16);
-        this.SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email";
+        this.SCOPE = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-read-private user-read-email web-playback";
 
         this.gson = new GsonBuilder()
                 .setExclusionStrategies(new CustomGsonExclusionStrategy())
@@ -266,7 +267,7 @@ public class SpotifyApiService {
                                         .album(asyncResponse.getTracks().getItems().getFirst().getAlbum().getName())
                                         .spotifyId(asyncResponse.getTracks().getItems().getFirst().getUri())
                                         .imageUrl(asyncResponse.getTracks().getItems().getFirst().getAlbum().getImages().getFirst().getUrl())
-                                        .duration(String.valueOf(asyncResponse.getTracks().getItems().getFirst().getDurationMs()))
+                                        .duration(TimeConverter.convertMillisToMinutesSeconds(asyncResponse.getTracks().getItems().getFirst().getDurationMs()))
                                         .previewUrl(asyncResponse.getTracks().getItems().getFirst().getPreviewUrl())
                                         .externalUrl(asyncResponse.getTracks().getItems().getFirst().getExternalUrls().getSpotify())
                                         .build();
